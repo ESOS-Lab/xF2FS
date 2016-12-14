@@ -246,7 +246,10 @@ enum {
 #define OFFSET_BIT_MASK		(0x07)	/* (0x01 << OFFSET_BIT_SHIFT) - 1 */
 
 /* Cheon - 161208
-*  Add checksum value in node footer.
+* Add checksum value in node footer.
+* Cheon - 161213
+* Change checksum to prev_atmaddr which points the previos file's last node
+* block address.
 */
 struct node_footer {
 	__le32 nid;		/* node id */
@@ -254,7 +257,8 @@ struct node_footer {
 	__le32 flag;		/* include cold/fsync/dentry marks and offset */
 	__le64 cp_ver;		/* checkpoint version */
 	__le32 next_blkaddr;	/* next node page block address */
-	__le32 checksum;	/* checksum value for atomic write */
+//	__le32 checksum;	/* checksum value for atomic write */
+	__le32 prev_atmaddr;
 } __packed;
 
 struct f2fs_node {

@@ -259,7 +259,9 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
 #define F2FS_IOC_SETFLAGS		FS_IOC_SETFLAGS
 #define F2FS_IOC_GETVERSION		FS_IOC_GETVERSION
 
-// [Cheon]
+/* Cheon - 161206
+ * Add MFAW IOC flags.
+ */
 #define F2FS_IOCTL_MAGIC		0xf5
 #define F2FS_IOC_START_ATOMIC_WRITE	_IO(F2FS_IOCTL_MAGIC, 1)
 #define F2FS_IOC_COMMIT_ATOMIC_WRITE	_IO(F2FS_IOCTL_MAGIC, 2)
@@ -302,12 +304,13 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
  */
 struct atomic_files_header {
 	struct list_head list;
-	unsigned long checksum;
-}
+	__le32 prev_atmaddr;
+};
+
 struct atomic_files {
 	struct list_head list;
 	struct file* file;
-}
+};
 
 struct f2fs_defragment {
 	u64 start;

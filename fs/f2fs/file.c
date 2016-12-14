@@ -287,7 +287,11 @@ out:
 	return ret;
 }
 
-/* Cheon - 161206 */
+/* Cheon - 161212
+ * Sync the data and node blocks.
+ * last_file - True if current *file is the last file of atomic writes.
+ * af_header - Atomic files list header which is used in fsync_node_pages_atomic.
+ */
 static int f2fs_do_sync_files(struct file *file, loff_t start, loff_t end,
 		int datasync, bool last_file, struct atomic_files_header *af_header)
 {
@@ -395,7 +399,6 @@ out:
 	f2fs_trace_ios(NULL, 1);
 	return ret;
 }
-
 
 int f2fs_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
 {
@@ -1655,15 +1658,18 @@ out:
  */
 static int f2fs_ioc_start_atomic_files(unsigned long arg)
 {
-	struct list_head* atomic_list = (struct list_head*) arg;
-	struct atomic_files* current_file;
+	struct list_head *atomic_list = (struct list_head*) arg;
+	struct atomic_files *current_file;
 	struct list_head *p;
+	int ret;
 
 	list_for_each(p, atomic_list)
 	{
 		current_file = list_entry(p, struct atomic_files, list);
-		f2fs_ioc_start_atomic_write(current_file.file);
+		ret = f2fs_ioc_start_atomic_write(current_file->file);
 	}
+
+	return ret;
 }
 
 static int f2fs_ioc_commit_atomic_write(struct file *filp)
@@ -1713,12 +1719,12 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 	list_for_each(p, atomic_list)
 	{
 		current_file = list_entry(p, struct atomic_files, list);
-		inode = file_inode(current_file);
+		inode = file_inode(current_file->file);
 
 		if(!inode_owner_or_capable(inode))
 			return -EACCES;
 
-		ret = mnt_want_write_file(current_file);
+		ret = mnt_want_write_file(current_file->file);
 		if (ret)
 			return ret;
 
@@ -1736,11 +1742,12 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 			}
 		}
 
-		ret = f2fs_do_sync_files(current_file, 0, LLONG_MAX, 0, p->next == atomic_list, list_entry(atomic_list, struct atomic_files_header, list)); 
+		ret = f2fs_do_sync_files(current_file->file, 0, LLONG_MAX, 0, p->next == atomic_list, list_entry(atomic_list, struct atomic_files_header, list)); 
 err_out:
 		inode_unlock(inode);
-		mnt_drop_write_file(current_file);
+		mnt_drop_write_file(current_file->file);
 	}
+	return ret;
 }
 
 static int f2fs_ioc_start_volatile_write(struct file *filp)

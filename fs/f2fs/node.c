@@ -1431,7 +1431,13 @@ continue_unlock:
 	return ret ? -EIO: 0;
 }
 
-/* Cheon - 161205 */
+/* Cheon - 161213
+ * Fsync node blocks. If the node is the last node of the last file,
+ * then set the fsync mark to indicate the atomic write has been committed.
+ * The last node of a file (not the last file) are pointed by the last node
+ * of next file. Temporary node block address is stored in atomic file list
+ * header, af_header.
+ */
 int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
 			struct writeback_control *wbc, bool last_file, struct atomic_files_header *af_header)
 {
@@ -1441,10 +1447,14 @@ int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
 	struct page *last_page = NULL;
 	bool marked = false;
 	nid_t ino = inode->i_ino;
-	unsigned char *crc_offset;
+/*	unsigned char *crc_offset;
 	int crc_count = 4096;
 	unsigned long crc_value;
 	struct f2fs_node *rn;
+*/	struct f2fs_nat_entry ne;
+	struct f2fs_nat_block *nat_blk;
+	struct page *nat_page;
+	nid_t curr_nid, start_nid;
 
 
 //	if (last_file) {
@@ -1512,13 +1522,24 @@ continue_unlock:
 			}
 
 			if (page == last_page) {
-				crc_offset = (unsigned char *)page;
+/*				crc_offset = (unsigned char *)page;
 				crc_value = ~af_header.checksum;
 				while (crc_count--)
 					crc_value = CRCtable[(crc_value ^ *(crc_offset++)) & 0xFF] ^ (crc_value >> 8);
 				af_header.checksum = crc_value;
-				*rn = F2FS_NODE(page);
+				rn = F2FS_NODE(page);
 				rn->footer.checksum = cpu_to_le32(crc_value);
+ */
+				// point the last node page of previous atomic written file.
+				F2FS_NODE(page)->footer.prev_atmaddr = (*af_header).prev_atmaddr;
+
+				// Store current blkaddr to af_header.
+				curr_nid = nid_of_node(page);
+				start_nid = START_NID(curr_nid);
+				nat_page = get_current_nat_page(sbi, curr_nid);
+				nat_blk = (struct f2fs_nat_block *)page_address(nat_page);
+				ne = nat_blk->entries[curr_nid - start_nid];
+				(*af_header).prev_atmaddr = ne.block_addr;
 			}
 
 			if (!clear_page_dirty_for_io(page))

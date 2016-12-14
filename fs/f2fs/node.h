@@ -246,6 +246,9 @@ static inline void fill_node_footer(struct page *page, nid_t nid,
 	/* should remain old flag bits such as COLD_BIT_SHIFT */
 	rn->footer.flag = cpu_to_le32((ofs << OFFSET_BIT_SHIFT) |
 					(old_flag & OFFSET_BIT_MASK));
+	// Cheon - 161213
+	if(reset)
+		rn->footer.prev_atmaddr = 0;
 }
 
 static inline void copy_node_footer(struct page *dst, struct page *src)
@@ -262,6 +265,8 @@ static inline void fill_node_footer_blkaddr(struct page *page, block_t blkaddr)
 
 	rn->footer.cp_ver = ckpt->checkpoint_ver;
 	rn->footer.next_blkaddr = cpu_to_le32(blkaddr);
+	// Cheon - 161213
+	rn->footer.prev_atmaddr = 0;
 }
 
 static inline nid_t ino_of_node(struct page *node_page)
