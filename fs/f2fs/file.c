@@ -22,6 +22,7 @@
 #include <linux/pagevec.h>
 #include <linux/uuid.h>
 #include <linux/file.h>
+#include <linux/slab.h>
 
 #include "f2fs.h"
 #include "node.h"
@@ -367,6 +368,7 @@ go_write:
 	}
 sync_nodes:
 	ret = fsync_node_pages_atomic(sbi, inode, &wbc, last_file, af_header);
+	printk(KERN_DEBUG "[Cheon] Node syncing complete\n");
 	if (ret)
 		goto out;
 
@@ -1656,6 +1658,41 @@ out:
 /* Cheon - 161206
  * Starting MFAW is just calling MAW to files in atomic file list.
  */
+static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
+{
+	struct list_head **atomic_list = (struct list_head**) arg;
+	struct atomic_files *new_file;
+	
+	if ((*atomic_list) == NULL)
+	{
+		struct atomic_files_header *af_header = (struct atomic_files_header*)kmalloc(sizeof(struct atomic_files_header), GFP_KERNEL);
+		if (af_header == NULL) {
+			printk(KERN_DEBUG "[Cheon] AF header creation failed\n");
+			return -ENOMEM;
+		}
+
+		printk(KERN_DEBUG "[Cheon] New AF header is created!\n");
+
+		INIT_LIST_HEAD(&af_header->list);
+		af_header->prev_atmaddr = cpu_to_le32(0);
+		*atomic_list = &af_header->list;
+	}
+
+	new_file = (struct atomic_files*)kmalloc(sizeof(struct atomic_files), GFP_KERNEL);
+
+	if (new_file == NULL) {
+		printk(KERN_DEBUG "[Cheon] AF list creation failed\n");
+		return -ENOMEM;
+	}
+
+    new_file->file = filp;
+	list_add_tail(&new_file->list, *atomic_list);
+
+	printk(KERN_DEBUG "[Cheon] New AF file %lX is inserted!\n", filp);
+
+	return 0;
+}
+
 static int f2fs_ioc_start_atomic_files(unsigned long arg)
 {
 	struct list_head *atomic_list = (struct list_head*) arg;
@@ -1663,10 +1700,19 @@ static int f2fs_ioc_start_atomic_files(unsigned long arg)
 	struct list_head *p;
 	int ret;
 
-	list_for_each(p, atomic_list)
+	printk(KERN_DEBUG "[Cheon] atomic_list: %lX\n", atomic_list);
+	printk(KERN_DEBUG "[Cheon] *atomic_list: %lX\n", *atomic_list);
+
+	list_for_each(p, atomic_list) {
+		printk(KERN_DEBUG "[Cheon] p: %lX\n", p);
+		printk(KERN_DEBUG "[Cheon] *p: %lX\n", *p);
+		printk(KERN_DEBUG "[Cheon] p->next: %lX\n", p->next);
+	}
+
+	list_for_each_entry(current_file, atomic_list, list)
 	{
-		current_file = list_entry(p, struct atomic_files, list);
 		ret = f2fs_ioc_start_atomic_write(current_file->file);
+		printk(KERN_DEBUG "[Cheon] Atomic file %lX is started!\n", current_file->file);
 	}
 
 	return ret;
@@ -1712,13 +1758,12 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 {
 	struct list_head* atomic_list = (struct list_head*) arg;
 	struct atomic_files* current_file;
-	struct list_head *p;
 	struct inode *inode;
 	int ret;
 
-	list_for_each(p, atomic_list)
+	list_for_each_entry(current_file, atomic_list, list)
 	{
-		current_file = list_entry(p, struct atomic_files, list);
+		printk(KERN_DEBUG "[Cheon] Committing atomic file %lX\n", current_file->file);
 		inode = file_inode(current_file->file);
 
 		if(!inode_owner_or_capable(inode))
@@ -1742,12 +1787,31 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 			}
 		}
 
-		ret = f2fs_do_sync_files(current_file->file, 0, LLONG_MAX, 0, p->next == atomic_list, list_entry(atomic_list, struct atomic_files_header, list)); 
+		ret = f2fs_do_sync_files(current_file->file, 0, LLONG_MAX, 0, current_file->list.next == atomic_list, list_entry(atomic_list, struct atomic_files_header, list)); 
+		printk(KERN_DEBUG "[Cheon] Atomic file %lX is committed!\n", current_file->file);
 err_out:
 		inode_unlock(inode);
 		mnt_drop_write_file(current_file->file);
+//		ret = f2fs_ioc_commit_atomic_write(current_file->file);
 	}
 	return ret;
+}
+
+static int f2fs_ioc_end_atomic_files(unsigned long arg)
+{
+	struct list_head* atomic_list = (struct list_head*) arg;
+	struct atomic_files* current_file;
+	struct atomic_files* temp;
+
+	list_for_each_entry_safe(current_file, temp, atomic_list, list)
+	{
+		printk(KERN_DEBUG "[Cheon] Atomic file %lX will be free!\n", current_file->file);
+		kfree(current_file);
+	}
+
+	kfree(list_entry(atomic_list, struct atomic_files_header, list));
+
+	return 0;
 }
 
 static int f2fs_ioc_start_volatile_write(struct file *filp)
@@ -2387,10 +2451,14 @@ long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return f2fs_ioc_start_atomic_write(filp);
 		case F2FS_IOC_COMMIT_ATOMIC_WRITE:
 			return f2fs_ioc_commit_atomic_write(filp);
+		case F2FS_IOC_ADD_ATOMIC_FILE:
+			return f2fs_ioc_add_atomic_file(filp, arg);
 		case F2FS_IOC_START_ATOMIC_WRITE_FILES:
 			return f2fs_ioc_start_atomic_files(arg);
 		case F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES:
 			return f2fs_ioc_commit_atomic_files(arg);
+		case F2FS_IOC_END_ATOMIC_WRITE_FILES:
+			return f2fs_ioc_end_atomic_files(arg);
 		case F2FS_IOC_START_VOLATILE_WRITE:
 			return f2fs_ioc_start_volatile_write(filp);
 		case F2FS_IOC_RELEASE_VOLATILE_WRITE:

@@ -287,8 +287,8 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head)
 			 * Recursively find the previous atomic written file's last node page
 			 * and add the inode of the page to the list.
 			 */
-			prev_atmaddr = le32_to_cpu(F2FS_NODE(page)->footer.prev_atmaddr);
-			F2FS_NODE(page)->footer.prev_atmaddr = 0;
+			prev_atmaddr = get_prev_atmaddr(page);
+			set_prev_atmaddr(page, 0);
 
 			while (prev_atmaddr) {
 				struct fsync_inode_entry *prev_entry;
@@ -330,8 +330,8 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head)
 				if (IS_INODE(last_atomic_page) && is_dent_dnode(last_atomic_page))
 					prev_entry->last_dentry = prev_atmaddr;
 continue_next:
-				prev_atmaddr = le32_to_cpu(F2FS_NODE(last_atomic_page)->footer.prev_atmaddr);
-				F2FS_NODE(last_atomic_page)->footer.prev_atmaddr = 0;
+				prev_atmaddr = get_prev_atmaddr(last_atomic_page);
+				set_prev_atmaddr(last_atomic_page, 0);
 				f2fs_put_page(last_atomic_page, 1);
 			}
 		}

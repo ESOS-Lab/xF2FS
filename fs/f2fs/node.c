@@ -30,7 +30,6 @@ static struct kmem_cache *nat_entry_set_slab;
 
 /* Cheon - 161208
  * Add CRC table.
- */
 static unsigned long CRCtable[256];
 
 void create_CRC_table(unsigned long id)
@@ -46,7 +45,7 @@ void create_CRC_table(unsigned long id)
 		CRCtable[i] = k;
 	}
 }
-
+*/
 bool available_free_memory(struct f2fs_sb_info *sbi, int type)
 {
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
@@ -1451,17 +1450,16 @@ int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
 	int crc_count = 4096;
 	unsigned long crc_value;
 	struct f2fs_node *rn;
-*/	struct f2fs_nat_entry ne;
-	struct f2fs_nat_block *nat_blk;
-	struct page *nat_page;
-	nid_t curr_nid, start_nid;
+*/	struct node_info ni;
+	struct f2fs_nm_info *nm_i;
+	struct nat_entry *e;
+	nid_t nid, start_nid;
 
+	printk(KERN_DEBUG "[Cheon] Syncing node pages\n");
 
-//	if (last_file) {
-		last_page = last_fsync_dnode(sbi, ino);
-		if (IS_ERR_OR_NULL(last_page))
-			return PTR_ERR_OR_ZERO(last_page);
-//	}
+	last_page = last_fsync_dnode(sbi, ino);
+	if (IS_ERR_OR_NULL(last_page))
+		return PTR_ERR_OR_ZERO(last_page);
 retry:
 	pagevec_init(&pvec, 0);
 	index = 0;
@@ -1507,20 +1505,6 @@ continue_unlock:
 			f2fs_wait_on_page_writeback(page, NODE, true);
 			BUG_ON(PageWriteback(page));
 
-			if (last_file && page == last_page) {
-				set_fsync_mark(page, 1);
-				if (IS_INODE(page)) {
-					if (is_inode_flag_set(inode,
-								FI_DIRTY_INODE))
-						update_inode(inode, page);
-					set_dentry_mark(page,
-						need_dentry_mark(sbi, ino));
-				}
-				/*  may be written by other thread */
-				if (!PageDirty(page))
-					set_page_dirty(page);
-			}
-
 			if (page == last_page) {
 /*				crc_offset = (unsigned char *)page;
 				crc_value = ~af_header.checksum;
@@ -1531,15 +1515,32 @@ continue_unlock:
 				rn->footer.checksum = cpu_to_le32(crc_value);
  */
 				// point the last node page of previous atomic written file.
-				F2FS_NODE(page)->footer.prev_atmaddr = (*af_header).prev_atmaddr;
+//				F2FS_NODE(page)->footer.prev_atmaddr = (*af_header).prev_atmaddr;
+				set_prev_atmaddr(page, af_header->prev_atmaddr);
+				printk(KERN_DEBUG "[Cheon] Set prev_atmaddr: %lX\n", af_header->prev_atmaddr);
 
 				// Store current blkaddr to af_header.
-				curr_nid = nid_of_node(page);
-				start_nid = START_NID(curr_nid);
-				nat_page = get_current_nat_page(sbi, curr_nid);
-				nat_blk = (struct f2fs_nat_block *)page_address(nat_page);
-				ne = nat_blk->entries[curr_nid - start_nid];
-				(*af_header).prev_atmaddr = ne.block_addr;
+				if(last_file) {
+					printk(KERN_DEBUG "[Cheon] set fsync mark\n");
+					set_fsync_mark(page, 1);
+/*				} else {
+					curr_nid = nid_of_node(page);
+					start_nid = START_NID(curr_nid);
+					nat_page = get_current_nat_page(sbi, curr_nid);
+					nat_blk = (struct f2fs_nat_block *)page_address(nat_page);
+					ne = nat_blk->entries[curr_nid - start_nid];
+					af_header->prev_atmaddr = ne.block_addr;
+					printk(KERN_DEBUG "[Cheon] Current node address: %lX\n", af_header->prev_atmaddr);
+					set_fsync_mark(page, 1);
+*/				}
+				if (IS_INODE(page)) {
+					if (is_inode_flag_set(inode, FI_DIRTY_INODE))
+						update_inode(inode, page);
+					set_dentry_mark(page, need_dentry_mark(sbi, ino));
+				}
+				/*  may be written by other thread */
+				if (!PageDirty(page))
+					set_page_dirty(page);
 			}
 
 			if (!clear_page_dirty_for_io(page))
@@ -1552,6 +1553,20 @@ continue_unlock:
 				break;
 			}
 			if (page == last_page) {
+				if (last_file) {
+					af_header->prev_atmaddr = cpu_to_le32(0);
+				} else {
+					nid = nid_of_node(page);
+					nm_i = NM_I(sbi);
+					e = __lookup_nat_cache(nm_i, nid);
+					get_node_info(sbi, nid, &ni);
+					if (ni.nid == ni.ino)
+						set_nat_flag(e, HAS_FSYNCED_INODE, true);
+					set_nat_flag(e, HAS_LAST_FSYNC, true);
+					af_header->prev_atmaddr = cpu_to_le32(ni.blk_addr);
+				}
+				printk(KERN_DEBUG "[Cheon] Current node address: %lX\n", af_header->prev_atmaddr);
+
 				f2fs_put_page(page, 0);
 				marked = true;
 				break;
