@@ -1,10 +1,9 @@
 
 #CROSS=arm-linux-gnueabi-
-#CROSS=
 
-EXENAME = mobibench
+EXENAME = mobibench_MFAW
 
-SRCS = mobibench.c \
+SRCS = mobibench_MFAW.c \
 	  sqlite3_MFAW.c
 
 INSTALL = install
@@ -30,15 +29,14 @@ CFLAGS += -DNDEBUG=1 \
      -DSQLITE_ENABLE_FTS3 \
      -DSQLITE_ENABLE_FTS3_BACKWARDS \
      -DSQLITE_ENABLE_FTS4 \
-     -DSQLITE_OMIT_BUILTIN_TEST \
+     -DSQLITE_DEFAULT_FILE_PERMISSIONS=0666 \
+	 -DSQLITE_OMIT_BUILTIN_TEST \
      -DSQLITE_OMIT_COMPILEOPTION_DIAGS \
      -DSQLITE_OMIT_LOAD_EXTENSION \
-     -DSQLITE_DEFAULT_FILE_PERMISSIONS=0666 \
      -DUSE_PREAD64 \
-	 -Dfdatasync=fdatasync \
-	 -DSQLITE_F2FS_ATOMIC \
 	 -DSQLITE_F2FS_MFAW \
-     --static
+	 -DHAVE_FDATASYNC
+#     --static
 
 all :
 	$(CROSS)gcc -o $(EXENAME) $(SRCS) $(CFLAGS)
