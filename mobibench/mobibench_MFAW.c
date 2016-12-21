@@ -1362,13 +1362,21 @@ int thread_main_db(void* arg)
 		}
 	}
 
-	sprintf(sql, "ATTACH DATABASE '%s/test.db1' AS [db1]", pathname);
+	sprintf(sql, "ATTACH DATABASE '%s/test.db1' AS 'db1'", pathname);
 	exec_sql(db[0], sql, NULL);
-	sprintf(sql, "ATTACH DATABASE '%s/test.db2' AS [db2]", pathname);
+	sprintf(sql, "PRAGMA db1.journal_mode=%s", get_journal_mode_string(db_journal_mode));
 	exec_sql(db[0], sql, NULL);
-	sprintf(sql, "ATTACH DATABASE '%s/test.db3' AS [db3]", pathname);
+	sprintf(sql, "ATTACH DATABASE '%s/test.db2' AS 'db2'", pathname);
 	exec_sql(db[0], sql, NULL);
-	sprintf(sql, "ATTACH DATABASE '%s/test.db4' AS [db4]", pathname);
+	sprintf(sql, "PRAGMA db2.journal_mode=%s", get_journal_mode_string(db_journal_mode));
+	exec_sql(db[0], sql, NULL);
+	sprintf(sql, "ATTACH DATABASE '%s/test.db3' AS 'db3'", pathname);
+	exec_sql(db[0], sql, NULL);
+	sprintf(sql, "PRAGMA db3.journal_mode=%s", get_journal_mode_string(db_journal_mode));
+	exec_sql(db[0], sql, NULL);
+	sprintf(sql, "ATTACH DATABASE '%s/test.db4' AS 'db4'", pathname);
+	exec_sql(db[0], sql, NULL);
+	sprintf(sql, "PRAGMA db4.journal_mode=%s", get_journal_mode_string(db_journal_mode));
 	exec_sql(db[0], sql, NULL);
 
 	//sqlite3_db_release_memory(db);
@@ -1386,7 +1394,7 @@ int thread_main_db(void* arg)
 	{
 		if(db_mode == 0)
 		{
-			sprintf(sql, "BEGIN; INSERT INTO tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db2.tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db3.tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db4.tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db5.tblMyList(id, Value) VALUES(%d, '%s'); COMMIT;", i, INSERT_STR, i, INSERT_STR, i, INSERT_STR, i, INSERT_STR, i, INSERT_STR);
+			sprintf(sql, "BEGIN; INSERT INTO tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db1.tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db2.tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db3.tblMyList(id, Value) VALUES(%d, '%s'); INSERT INTO db4.tblMyList(id, Value) VALUES(%d, '%s'); COMMIT;", i, INSERT_STR, i, INSERT_STR, i, INSERT_STR, i, INSERT_STR, i, INSERT_STR);
 			exec_sql(db[0], sql, NULL);
 		}
 		else if(db_mode == 1)

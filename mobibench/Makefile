@@ -35,8 +35,8 @@ CFLAGS += -DNDEBUG=1 \
      -DSQLITE_OMIT_LOAD_EXTENSION \
      -DUSE_PREAD64 \
 	 -DSQLITE_F2FS_MFAW \
-	 -DHAVE_FDATASYNC
-#     --static
+	 -DHAVE_FDATASYNC \
+     --static
 
 all :
 	$(CROSS)gcc -o $(EXENAME) $(SRCS) $(CFLAGS)
