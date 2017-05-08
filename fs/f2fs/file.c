@@ -1663,6 +1663,11 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 {
 	struct list_head **atomic_list = (struct list_head**) arg;
 	struct atomic_files *new_file;
+
+	if (f2fs_is_atomic_file(file_inode(filp))) {
+		printk(KERN_DEBUG "[MFAW DEBUG] The file is already added to another af_list\n");
+		return -EINVAL;
+	}
 	
 	if ((*atomic_list) == NULL)
 	{
