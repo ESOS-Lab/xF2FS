@@ -179,6 +179,9 @@ static int f2fs_prepare_super_block(void)
 				config.segs_per_zone * config.segs_per_zone);
 
 	set_sb(segment0_blkaddr, zone_align_start_offset / blk_size_bytes);
+	//TEMP
+	printf("checkpoint : %u\n", zone_align_start_offset / blk_size_bytes);
+
 	sb->cp_blkaddr = sb->segment0_blkaddr;
 
 	MSG(0, "Info: zone aligned segment0 blkaddr: %u\n", get_sb(segment0_blkaddr));
@@ -186,6 +189,9 @@ static int f2fs_prepare_super_block(void)
 	set_sb(segment_count_ckpt, F2FS_NUMBER_OF_CHECKPOINT_PACK);
 
 	set_sb(sit_blkaddr, get_sb(segment0_blkaddr) + get_sb(segment_count_ckpt) *
+			config.blks_per_seg);
+	//TEMP
+	printf("sit : %u\n", get_sb(segment0_blkaddr) + get_sb(segment_count_ckpt) *
 			config.blks_per_seg);
 
 	blocks_for_sit = ALIGN(get_sb(segment_count), SIT_ENTRY_PER_BLOCK);
@@ -195,6 +201,9 @@ static int f2fs_prepare_super_block(void)
 	set_sb(segment_count_sit, sit_segments * 2);
 
 	set_sb(nat_blkaddr, get_sb(sit_blkaddr) + get_sb(segment_count_sit) *
+			config.blks_per_seg);
+	//TEMP
+	printf("nat : %u\n", get_sb(sit_blkaddr) + get_sb(segment_count_sit) *
 			config.blks_per_seg);
 
 	total_valid_blks_available = (get_sb(segment_count) -
@@ -240,6 +249,9 @@ static int f2fs_prepare_super_block(void)
 
 	set_sb(ssa_blkaddr, get_sb(nat_blkaddr) + get_sb(segment_count_nat) *
 			config.blks_per_seg);
+	//TEMP
+	printf("ssa : %u\n", get_sb(nat_blkaddr) + get_sb(segment_count_nat) *
+			config.blks_per_seg);
 
 	total_valid_blks_available = (get_sb(segment_count) -
 			(get_sb(segment_count_ckpt) +
@@ -265,6 +277,9 @@ static int f2fs_prepare_super_block(void)
 						config.blks_per_seg);
 
 	set_sb(main_blkaddr, get_sb(segment0_blkaddr) + total_meta_zones *
+				config.segs_per_zone * config.blks_per_seg);
+	//TEMP
+	printf("main : %u\n", get_sb(segment0_blkaddr) + total_meta_zones *
 				config.segs_per_zone * config.blks_per_seg);
 
 	total_zones = get_sb(segment_count) / (config.segs_per_zone) -

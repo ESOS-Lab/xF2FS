@@ -1639,6 +1639,7 @@ static int f2fs_ioc_start_atomic_write(struct file *filp)
 		goto out;
 
 	set_inode_flag(inode, FI_ATOMIC_FILE);
+	F2FS_I(inode)->af_list_owner_pid = current->pid;
 	f2fs_update_time(F2FS_I_SB(inode), REQ_TIME);
 
 	if (!get_dirty_pages(inode))
@@ -1748,6 +1749,7 @@ static int f2fs_ioc_commit_atomic_write(struct file *filp)
 			set_inode_flag(inode, FI_ATOMIC_FILE);
 			goto err_out;
 		}
+		F2FS_I(inode)->af_list_owner_pid = 0;
 	}
 
 	ret = f2fs_do_sync_file(filp, 0, LLONG_MAX, 0, true);
@@ -1791,6 +1793,7 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 				set_inode_flag(inode, FI_ATOMIC_FILE);
 				goto err_out;
 			}
+			F2FS_I(inode)->af_list_owner_pid = 0;
 		}
 
 		ret = f2fs_do_sync_files(current_file->file, 0, LLONG_MAX, 0, current_file->list.next == atomic_list, list_entry(atomic_list, struct atomic_files_header, list)); 
