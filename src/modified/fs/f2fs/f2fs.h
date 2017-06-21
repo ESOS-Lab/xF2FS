@@ -323,6 +323,7 @@ struct atomic_files_header {
 struct atomic_files {
 	struct list_head list;
 	struct file* file;
+	bool exited;
 };
 #endif
 
@@ -496,7 +497,11 @@ struct f2fs_inode_info {
 	struct mutex inmem_lock;	/* lock for inmemory pages */
 	struct extent_tree *extent_tree;	/* cached extent_tree entry */
 	struct rw_semaphore dio_rwsem[2];/* avoid racing between dio and gc */
+#ifdef F2FS_MFAW
 	pid_t af_list_owner_pid;	/* pid who has the af_list including this file */
+	struct atomic_files_header af_list_header;	/* atomic file list header pointer which include this file */
+	struct atomic_files af_list;	/* atomic file list element pointer which correspond to this file */
+#endif
 };
 
 static inline void get_extent_info(struct extent_info *ext,
@@ -1585,6 +1590,9 @@ enum {
 	FI_UPDATE_WRITE,	/* inode has in-place-update data */
 	FI_NEED_IPU,		/* used for ipu per file */
 	FI_ATOMIC_FILE,		/* indicate atomic file */
+#ifdef F2FS_MFAW
+	FI_ADD_ATOMIC_FILE,	/* indicate whether an atomic file has been added */
+#endif
 	FI_VOLATILE_FILE,	/* indicate volatile file */
 	FI_FIRST_BLOCK_WRITTEN,	/* indicate #0 data block was written */
 	FI_DROP_CACHE,		/* drop dirty page cache */
@@ -1780,6 +1788,13 @@ static inline bool f2fs_is_atomic_file(struct inode *inode)
 {
 	return is_inode_flag_set(inode, FI_ATOMIC_FILE);
 }
+
+#ifdef F2FS_MFAW
+static inline bool f2fs_is_added_atomic_file(struct inode *inode)
+{
+	return is_inode_flag_set(inode, FI_ADD_ATOMIC_FILE);
+}
+#endif
 
 static inline bool f2fs_is_volatile_file(struct inode *inode)
 {

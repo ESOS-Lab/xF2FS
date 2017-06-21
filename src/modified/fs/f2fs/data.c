@@ -1839,11 +1839,7 @@ static int f2fs_set_data_page_dirty(struct page *page)
 	if (!PageUptodate(page))
 		SetPageUptodate(page);
 
-#ifdef F2FS_MFAW
-	if (f2fs_is_atomic_file(inode) && F2FS_I(inode)->af_list_owner_pid == current->pid) {
-#else
 	if (f2fs_is_atomic_file(inode)) {
-#endif
 		if (!IS_ATOMIC_WRITTEN_PAGE(page)) {
 			register_inmem_page(inode, page);
 			return 1;
