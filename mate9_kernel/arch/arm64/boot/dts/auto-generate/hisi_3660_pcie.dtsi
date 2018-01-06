@@ -1,0 +1,70 @@
+/**
+ * Note: any file.dtsi or node in this file will be compile into all config.dts
+ *so, if your node or file.dtsi will not use on some products, please don't put it here
+ */
+
+/{
+    its_pcie: interrupt-controller@f4000000 {
+		compatible = "arm,gic-v3-its";
+		msi-controller;
+		reg = <0x0 0xf7000000 0x0 0x100000>;
+	};
+
+	kirin_pcie_rc@0xf4000000 {
+		compatible = "hisilicon,kirin-pcie";
+		reg =  <0x0 0xf4000000 0x0 0x1000>, <0x0 0xff3fe000 0x0 0x1000>, <0x0 0xf3f20000 0x0 0x40000>, <0x0 0xF5000000 0 0x2000>;
+		reg-names = "dbi","apb","phy", "config";
+		clocks = <&clk_gate_pciephy_ref>, <&clk_gate_pcieaux>, <&pclk_gate_pcie_phy>, <&pclk_gate_pcie_sys>, <&aclk_gate_pcie>;
+		clock-names = "pcie_phy_ref", "pcie_aux", "pcie_apb_phy", "pcie_apb_sys", "pcie_aclk";
+		interrupts = <0 282 4>, <0 283 4>, <0 284 4>, <0 285 4>, <0 279 4>;
+		interrupt-names = "INTa", "INTb", "INTc", "INTd", "link_down";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		device_type = "pci";
+		ranges = <0x02000000 0x0 0x00000000 0x0 0xf4000000 0x0 0x4000000>;
+		num-lanes = <1>;
+		rc-id = <0>;
+		mtcmos-used = <1>;
+		isoen = <0x40 0x30>;
+		isodis = <0x44 0x30>;
+		bus-range = <0x0  0x1>;
+		msi-parent = <&its_pcie>;
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 7>;
+		interrupt-map = <0 0 0 1 &gic 0 0 0 282 4>,
+				<0 0 0 2 &gic 0 0 0  283 4>,
+				<0 0 0 3 &gic 0 0 0  284 4>,
+				<0 0 0 4 &gic 0 0 0  285 4>;
+		phy_assert = <0x84 0x88000000>;
+		phy_deassert = <0x88 0x88000000>;
+		core_assert = <0x84 0x84000000>;
+		core_deassert = <0x88 0x84000000>;
+		eye_param_ctrl2 = <0x1540AA4B>;
+		eye_param_ctrl3 = <0x14003FFF>;
+		ep_ltr_latency = <0x10031003>;
+		ep_l1ss_ctrl2 = <0x61>;
+		status = "disabled";
+	};
+
+	kirin_pcie_ep@0xf4000000 {
+		compatible = "hisilicon,kirin-pcie";
+		reg =  <0x0 0xf4000000 0x0 0x1000>, <0x0 0xff3fe000 0x0 0x1000>, <0x0 0xf3f20000 0x0 0x40000>, <0x0 0xF5000000 0 0x2000>;
+		reg-names = "dbi","apb","phy", "config";
+		clocks =  <&clk_gate_pciephy_ref>, <&clk_gate_pcieaux>, <&pclk_gate_pcie_phy>, <&pclk_gate_pcie_sys>, <&aclk_gate_pcie>;
+		clock-names = "pcie_phy_ref", "pcie_aux", "pcie_apb_phy", "pcie_apb_sys", "pcie_aclk";
+		board_type = <0>;
+		rc-id = <0>;
+		mtcmos-used = <1>;
+		isoen = <0x40 0x30>;
+		isodis = <0x44 0x30>;
+		ep_flag;
+		device_type = "pci";
+		phy_assert = <0x84 0x88000000>;
+		phy_deassert = <0x88 0x88000000>;
+		core_assert = <0x84 0x84000000>;
+		core_deassert = <0x88 0x84000000>;
+		eye_param_ctrl2 = <0x1540AA4B>;
+		eye_param_ctrl3 = <0x14003FFF>;
+		status = "disabled";
+	};
+};
