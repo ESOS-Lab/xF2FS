@@ -1,0 +1,39 @@
+
+/**
+ * Copyright (C) 2014 Hisilicon Ltd.
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  publishhed by the Free Software Foundation.
+ */
+
+/include/ "hi3660_fpga_010_config.dtsi"
+
+/ {
+	hisi,boardid = <5 0 9 7>;
+	hisi,boardname = "hi3660_fpga_020";
+
+    vdec {
+        compatible = "hisi,kirin960-vdec";
+        reg = <0x0 0xe8800000 0x0 0x20000>;
+        interrupts = <0 290 4>, <0 291 4>, <0 292 4>, <0 293 4>;
+        clocks = <&clk_gate_vdec>;
+        clock-names = "clk_vdec";
+        dec_clk_rate = <400000000>, <200000000>;
+        ldo_vdec-supply = <&vdec>;
+        vdec_fpga = <0x1>;
+        status = "ok";
+    };
+
+    venc {
+        compatible = "hisi,kirin960-venc";
+        reg = <0x0 0xe8900000 0x0 0x20000>;
+        interrupts = <0 298 4>, <0 299 4>;
+        clocks = <&clk_gate_venc>;
+        clock-names = "clk_venc";
+        ldo_venc-supply = <&venc>;
+        venc_fpga = <0x1>;
+        status = "ok";
+    };
+
+};

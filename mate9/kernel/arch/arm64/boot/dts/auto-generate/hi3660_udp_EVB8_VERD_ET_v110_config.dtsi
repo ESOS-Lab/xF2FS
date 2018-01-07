@@ -1,0 +1,27 @@
+/**
+ * Copyright (C) 2014 Hisilicon Ltd.
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  publishhed by the Free Software Foundation.
+ */
+
+/include/ "hi3660_udp_EVB8_VERD_ET_config.dtsi"
+/ {
+	hisi,boardid = <5 0 9 1>;
+	hisi,boardname = "hi3660_udp_EVB8_VERD_ET_v110";
+	hisi,gpu_arch = "mimir";
+	hisi,camera_arch = "platform_v110";
+
+	gpu: mali@E82C0000 {
+		operating-points = <
+			/* <frequency> <voltage>*/
+			178000  650000
+			400000	700000
+			533000	800000
+			807000	900000
+			960000	1000000
+			1037000 1100000
+		>;
+	};
+};

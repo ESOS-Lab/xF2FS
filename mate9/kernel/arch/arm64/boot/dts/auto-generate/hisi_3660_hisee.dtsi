@@ -1,0 +1,10 @@
+
+
+/ {
+	hisee@0x0 {
+		compatible = "hisilicon,hisee-device";
+		memory-region = <&fastboot_cma>;
+		reg = <0x0 0x0 0x0 0x0>;
+		status="okay";
+	};
+};

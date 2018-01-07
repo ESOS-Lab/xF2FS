@@ -1,0 +1,51 @@
+CFG_BBP_MASTER_NONE                             = 0
+CFG_BBP_MASTER_V8R1                             = 1
+CFG_BBP_MASTER_V7R5                             = 2
+CFG_BBP_MASTER_V8R5                             = 3
+CFG_BBP_MASTER_K3V6                             = 4
+CFG_BBP_MASTER_KIRIN970                         = 5
+CFG_FEATURE_BBP_MASTER_VER                      = (BBP_MASTER_K3V6)
+
+CFG_FEATURE_BBP_MASTER                          = FEATURE_ON
+
+CFG_BBP_MASTER_INT_MODE                         = FEATURE_ON
+
+CFG_FEATURE_BBP_MASTER_CHAN_EXTEND              = FEATURE_ON
+
+CFG_FEATURE_BBP_MASTER_CHAN_U2                  = FEATURE_ON
+
+#ACORE VOS Hard Timer
+CFG_FEATURE_POWER_TIMER                         = FEATURE_ON
+
+#卡多应用开关宏
+CFG_FEATURE_UE_UICC_MULTI_APP_SUPPORT           = FEATURE_ON
+
+# 虚拟卡特性开关
+CFG_FEATURE_VSIM                                = FEATURE_ON
+
+# GUC BBP TRIG特性开关
+CFG_FEATURE_GUC_BBP_TRIG                        = FEATURE_ON
+
+# GU DRX低功耗特性BBP握手功能
+CFG_FEATURE_GUBBP_HANDSHAKE                     = FEATURE_ON
+
+# GU DRX新版本特性控制开关
+CFG_FEATURE_GUDRX_NEWVERSION                    = FEATURE_ON
+
+#减少VOS内存
+CFG_FEATURE_VOS_REDUCE_MEM_CFG                  = FEATURE_OFF
+
+# BBP采数功能
+CFG_FEATURE_OM_BBPLOG                           = FEATURE_OFF
+
+# RTC Timer DBG功能
+CFG_FEATURE_RTC_TIMER_DBG                       = FEATURE_ON
+
+#区分MBB和Phone的Simlock特性，只在Phone开启
+CFG_FEATURE_PHONE_SC                            = FEATURE_ON
+
+#锁网锁卡安全升级特性
+CFG_FEATURE_SC_SEC_UPDATE                       = FEATURE_ON
+
+#VSIM_ICC
+CFG_FEATURE_VSIM_ICC_SEC_CHANNEL                = FEATURE_ON
