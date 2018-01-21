@@ -25,11 +25,7 @@
 #include <linux/fscrypto.h>
 #include <crypto/hash.h>
 
-#define F2FS_MFAW
-
-#ifdef F2FS_MFAW
-#define F2FS_MFAW_DEBUG
-#endif
+#define F2FS_MUFIT
 
 #ifdef CONFIG_F2FS_CHECK_FS
 #define f2fs_bug_on(sbi, condition)	BUG_ON(condition)
@@ -265,20 +261,14 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
 #define F2FS_IOC_SETFLAGS		FS_IOC_SETFLAGS
 #define F2FS_IOC_GETVERSION		FS_IOC_GETVERSION
 
-/* Cheon - 161206
- * Add MFAW IOC flags.
- */
 #define F2FS_IOCTL_MAGIC		0xf5
 #define F2FS_IOC_START_ATOMIC_WRITE	_IO(F2FS_IOCTL_MAGIC, 1)
 #define F2FS_IOC_COMMIT_ATOMIC_WRITE	_IO(F2FS_IOCTL_MAGIC, 2)
-
-#ifdef F2FS_MFAW
-#define F2FS_IOC_ADD_ATOMIC_FILE		_IO(F2FS_IOCTL_MAGIC, 3)
-#define F2FS_IOC_START_ATOMIC_WRITE_FILES	_IO(F2FS_IOCTL_MAGIC, 4)
-#define F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES	_IO(F2FS_IOCTL_MAGIC, 5)
-#define F2FS_IOC_END_ATOMIC_WRITE_FILES	_IO(F2FS_IOCTL_MAGIC, 6)
-#endif
-
+#ifdef F2FS_MUFIT
+#define F2FS_IOC_ADD_ATOMIC_FILE        _IO(F2FS_IOCTL_MAGIC, 3)
+#define F2FS_IOC_START_ATOMIC_WRITE_FILES   _IO(F2FS_IOCTL_MAGIC, 4)
+#define F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES  _IO(F2FS_IOCTL_MAGIC, 5)
+#define F2FS_IOC_END_ATOMIC_WRITE_FILES _IO(F2FS_IOCTL_MAGIC, 6)
 #define F2FS_IOC_START_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 7)
 #define F2FS_IOC_RELEASE_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 8)
 #define F2FS_IOC_ABORT_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 9)
@@ -287,6 +277,16 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
 #define F2FS_IOC_DEFRAGMENT		_IO(F2FS_IOCTL_MAGIC, 12)
 #define F2FS_IOC_MOVE_RANGE		_IOWR(F2FS_IOCTL_MAGIC, 13,	\
 						struct f2fs_move_range)
+#else
+#define F2FS_IOC_START_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 3)
+#define F2FS_IOC_RELEASE_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 4)
+#define F2FS_IOC_ABORT_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 5)
+#define F2FS_IOC_GARBAGE_COLLECT	_IO(F2FS_IOCTL_MAGIC, 6)
+#define F2FS_IOC_WRITE_CHECKPOINT	_IO(F2FS_IOCTL_MAGIC, 7)
+#define F2FS_IOC_DEFRAGMENT		_IO(F2FS_IOCTL_MAGIC, 8)
+#define F2FS_IOC_MOVE_RANGE		_IOWR(F2FS_IOCTL_MAGIC, 9,	\
+						struct f2fs_move_range)
+#endif
 
 #define F2FS_IOC_SET_ENCRYPTION_POLICY	FS_IOC_SET_ENCRYPTION_POLICY
 #define F2FS_IOC_GET_ENCRYPTION_POLICY	FS_IOC_GET_ENCRYPTION_POLICY
@@ -311,19 +311,21 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
 #define F2FS_IOC32_GETVERSION		FS_IOC32_GETVERSION
 #endif
 
-/* Cheon - 161206
- * Add atomic file list structure for MFAW.
- */
-#ifdef F2FS_MFAW
+#ifdef F2FS_MUFIT
+#define MUFIT_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) \
+				>> OFFSET_BIT_SHIFT)
 struct atomic_files_header {
+	struct mufit_node mn;
 	struct list_head list;
-	__le32 prev_atmaddr;
+	unsigned int count_files;
+	unsigned int count_closed_files;
+	nid_t master_nid;
 };
 
 struct atomic_files {
 	struct list_head list;
-	struct file* file;
-	bool exited;
+	struct file *file;
+	bool closed;
 };
 #endif
 
@@ -497,10 +499,11 @@ struct f2fs_inode_info {
 	struct mutex inmem_lock;	/* lock for inmemory pages */
 	struct extent_tree *extent_tree;	/* cached extent_tree entry */
 	struct rw_semaphore dio_rwsem[2];/* avoid racing between dio and gc */
-#ifdef F2FS_MFAW
-	pid_t af_list_owner_pid;	/* pid who has the af_list including this file */
-	struct atomic_files_header af_list_header;	/* atomic file list header pointer which include this file */
-	struct atomic_files af_list;	/* atomic file list element pointer which correspond to this file */
+
+#ifdef F2FS_MUFIT
+	pid_t af_list_owner_pid;
+	struct atomic_files_header *af_list_header;
+	struct atomic_files *af_list;
 #endif
 };
 
@@ -1590,9 +1593,6 @@ enum {
 	FI_UPDATE_WRITE,	/* inode has in-place-update data */
 	FI_NEED_IPU,		/* used for ipu per file */
 	FI_ATOMIC_FILE,		/* indicate atomic file */
-#ifdef F2FS_MFAW
-	FI_ADD_ATOMIC_FILE,	/* indicate whether an atomic file has been added */
-#endif
 	FI_VOLATILE_FILE,	/* indicate volatile file */
 	FI_FIRST_BLOCK_WRITTEN,	/* indicate #0 data block was written */
 	FI_DROP_CACHE,		/* drop dirty page cache */
@@ -1600,6 +1600,9 @@ enum {
 	FI_INLINE_DOTS,		/* indicate inline dot dentries */
 	FI_DO_DEFRAG,		/* indicate defragment is running */
 	FI_DIRTY_FILE,		/* indicate regular/symlink has dirty pages */
+#ifdef F2FS_MUFIT
+	FI_ADDED_ATOMIC_FILE,
+#endif
 };
 
 static inline void __mark_inode_dirty_flag(struct inode *inode,
@@ -1789,10 +1792,10 @@ static inline bool f2fs_is_atomic_file(struct inode *inode)
 	return is_inode_flag_set(inode, FI_ATOMIC_FILE);
 }
 
-#ifdef F2FS_MFAW
+#ifdef F2FS_MUFIT
 static inline bool f2fs_is_added_atomic_file(struct inode *inode)
 {
-	return is_inode_flag_set(inode, FI_ADD_ATOMIC_FILE);
+	return is_inode_flag_set(inode, FI_ADDED_ATOMIC_FILE);
 }
 #endif
 
@@ -2027,8 +2030,10 @@ struct page *get_node_page_ra(struct page *, int);
 void move_node_page(struct page *, int);
 int fsync_node_pages(struct f2fs_sb_info *, struct inode *,
 			struct writeback_control *, bool);
+#ifdef F2FS_MUFIT
 int fsync_node_pages_atomic(struct f2fs_sb_info *, struct inode *,
 			struct writeback_control *, bool, struct atomic_files_header *);
+#endif
 int sync_node_pages(struct f2fs_sb_info *, struct writeback_control *);
 void build_free_nids(struct f2fs_sb_info *);
 bool alloc_nid(struct f2fs_sb_info *, nid_t *);

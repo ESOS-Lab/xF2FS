@@ -227,10 +227,6 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head)
 	struct curseg_info *curseg;
 	struct inode *inode;
 	struct page *page = NULL;
-#ifdef F2FS_MFAW
-	struct page *last_atomic_page = NULL;
-	block_t prev_atmaddr;
-#endif
 	block_t blkaddr;
 	int err = 0;
 
@@ -284,60 +280,6 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head)
 				iput(inode);
 				break;
 			}
-
-#ifdef F2FS_MFAW
-			/* Cheon - 161213
-			 * Recursively find the previous atomic written file's last node page
-			 * and add the inode of the page to the list.
-			 */
-			prev_atmaddr = get_prev_atmaddr(page);
-			set_prev_atmaddr(page, 0);
-
-			while (prev_atmaddr) {
-				struct fsync_inode_entry *prev_entry;
-				last_atomic_page = get_tmp_page(sbi, prev_atmaddr);
-
-				prev_entry = get_fsync_inode(head, ino_of_node(last_atomic_page));
-				if (prev_entry) {
-					if (!is_same_inode(prev_entry->inode, last_atomic_page))
-						goto continue_next;
-				} else {
-					if (IS_INODE(last_atomic_page) && is_dent_dnode(page)) {
-						err = recover_inode_page(sbi, last_atomic_page);
-						if (err) {
-							f2fs_put_page (last_atomic_page, 1);
-							break;
-						}
-					}
-
-					inode = f2fs_iget(sbi->sb, ino_of_node(last_atomic_page));
-					if (IS_ERR(inode)) {
-						err = PTR_ERR(inode);
-						if (err == -ENOENT) {
-							err = 0;
-							goto continue_next;
-						}
-						break;
-					}
-
-					prev_entry = add_fsync_inode(head, inode);
-					if (!prev_entry) {
-						err = -ENOMEM;
-						iput(inode);
-						f2fs_put_page (last_atomic_page, 1);
-						break;
-					}
-				}
-				prev_entry->blkaddr = prev_atmaddr;
-
-				if (IS_INODE(last_atomic_page) && is_dent_dnode(last_atomic_page))
-					prev_entry->last_dentry = prev_atmaddr;
-continue_next:
-				prev_atmaddr = get_prev_atmaddr(last_atomic_page);
-				set_prev_atmaddr(last_atomic_page, 0);
-				f2fs_put_page(last_atomic_page, 1);
-			}
-#endif
 		}
 		entry->blkaddr = blkaddr;
 

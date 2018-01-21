@@ -246,11 +246,6 @@ static inline void fill_node_footer(struct page *page, nid_t nid,
 	/* should remain old flag bits such as COLD_BIT_SHIFT */
 	rn->footer.flag = cpu_to_le32((ofs << OFFSET_BIT_SHIFT) |
 					(old_flag & OFFSET_BIT_MASK));
-#ifdef F2FS_MFAW
-	// Cheon - 161213
-	if(reset)
-		rn->footer.prev_atmaddr = cpu_to_le32(0);
-#endif
 }
 
 static inline void copy_node_footer(struct page *dst, struct page *src)
@@ -267,10 +262,6 @@ static inline void fill_node_footer_blkaddr(struct page *page, block_t blkaddr)
 
 	rn->footer.cp_ver = ckpt->checkpoint_ver;
 	rn->footer.next_blkaddr = cpu_to_le32(blkaddr);
-#ifdef F2FS_MFAW
-	// Cheon - 161213
-	rn->footer.prev_atmaddr = cpu_to_le32(0);
-#endif
 }
 
 static inline nid_t ino_of_node(struct page *node_page)
@@ -302,18 +293,6 @@ static inline block_t next_blkaddr_of_node(struct page *node_page)
 {
 	struct f2fs_node *rn = F2FS_NODE(node_page);
 	return le32_to_cpu(rn->footer.next_blkaddr);
-}
-
-static inline block_t get_prev_atmaddr(struct page *node_page)
-{
-	struct f2fs_node *rn = F2FS_NODE(node_page);
-	return le32_to_cpu(rn->footer.prev_atmaddr);
-}
-
-static inline void set_prev_atmaddr(struct page *node_page, block_t addr)
-{
-	struct f2fs_node *rn = F2FS_NODE(node_page);
-	rn->footer.prev_atmaddr = cpu_to_le32(addr);
 }
 
 /*

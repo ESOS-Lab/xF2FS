@@ -1412,16 +1412,9 @@ continue_unlock:
 	return ret ? -EIO: 0;
 }
 
-#ifdef F2FS_MFAW
-/* Cheon - 161213
- * Fsync node blocks. If the node is the last node of the last file,
- * then set the fsync mark to indicate the atomic write has been committed.
- * The last node of a file (not the last file) are pointed by the last node
- * of next file. Temporary node block address is stored in atomic file list
- * header, af_header.
- */
+#ifdef F2FS_MUFIT
 int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
-			struct writeback_control *wbc, bool last_file, struct atomic_files_header *af_header)
+		struct writeback_control *wbc, bool last_file, struct atomic_files_header *af_header)
 {
 	pgoff_t index, end;
 	struct pagevec pvec;
@@ -1429,16 +1422,7 @@ int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
 	struct page *last_page = NULL;
 	bool marked = false;
 	nid_t ino = inode->i_ino;
-/*	unsigned char *crc_offset;
-	int crc_count = 4096;
-	unsigned long crc_value;
-	struct f2fs_node *rn;
-*/	struct node_info ni;
-	struct f2fs_nm_info *nm_i;
-	struct nat_entry *e;
-	nid_t nid, start_nid;
-
-	printk(KERN_DEBUG "[Cheon] Syncing node pages\n");
+	bool fsynced = false;
 
 	last_page = last_fsync_dnode(sbi, ino);
 	if (IS_ERR_OR_NULL(last_page))
@@ -1488,43 +1472,19 @@ continue_unlock:
 			f2fs_wait_on_page_writeback(page, NODE, true);
 			BUG_ON(PageWriteback(page));
 
-			if (page == last_page) {
-/*				crc_offset = (unsigned char *)page;
-				crc_value = ~af_header.checksum;
-				while (crc_count--)
-					crc_value = CRCtable[(crc_value ^ *(crc_offset++)) & 0xFF] ^ (crc_value >> 8);
-				af_header.checksum = crc_value;
-				rn = F2FS_NODE(page);
-				rn->footer.checksum = cpu_to_le32(crc_value);
- */
-				// point the last node page of previous atomic written file.
-//				F2FS_NODE(page)->footer.prev_atmaddr = (*af_header).prev_atmaddr;
-				set_prev_atmaddr(page, af_header->prev_atmaddr);
-				printk(KERN_DEBUG "[Cheon] Set prev_atmaddr: %lX\n", af_header->prev_atmaddr);
-
-				// Store current blkaddr to af_header.
-				if(last_file) {
-					printk(KERN_DEBUG "[Cheon] set fsync mark\n");
-					set_fsync_mark(page, 1);
-/*				} else {
-					curr_nid = nid_of_node(page);
-					start_nid = START_NID(curr_nid);
-					nat_page = get_current_nat_page(sbi, curr_nid);
-					nat_blk = (struct f2fs_nat_block *)page_address(nat_page);
-					ne = nat_blk->entries[curr_nid - start_nid];
-					af_header->prev_atmaddr = ne.block_addr;
-					printk(KERN_DEBUG "[Cheon] Current node address: %lX\n", af_header->prev_atmaddr);
-					set_fsync_mark(page, 1);
-*/				}
+			/*if (page == last_page) {
+				set_fsync_mark(page, 1);
 				if (IS_INODE(page)) {
-					if (is_inode_flag_set(inode, FI_DIRTY_INODE))
+					if (is_inode_flag_set(inode,
+								FI_DIRTY_INODE))
 						update_inode(inode, page);
-					set_dentry_mark(page, need_dentry_mark(sbi, ino));
-				}
+					set_dentry_mark(page,
+						need_dentry_mark(sbi, ino));
+				}*/
 				/*  may be written by other thread */
-				if (!PageDirty(page))
+				/*if (!PageDirty(page))
 					set_page_dirty(page);
-			}
+			}*/
 
 			if (!clear_page_dirty_for_io(page))
 				goto continue_unlock;
@@ -1536,38 +1496,85 @@ continue_unlock:
 				break;
 			}
 			if (page == last_page) {
-				if (last_file) {
-					af_header->prev_atmaddr = cpu_to_le32(0);
-				} else {
-					nid = nid_of_node(page);
-					nm_i = NM_I(sbi);
-					e = __lookup_nat_cache(nm_i, nid);
-					get_node_info(sbi, nid, &ni);
-					if (ni.nid == ni.ino)
-						set_nat_flag(e, HAS_FSYNCED_INODE, true);
-					set_nat_flag(e, HAS_LAST_FSYNC, true);
-					af_header->prev_atmaddr = cpu_to_le32(ni.blk_addr);
-				}
-				printk(KERN_DEBUG "[Cheon] Current node address: %lX\n", af_header->prev_atmaddr);
+				nid_t nid;
+				struct node_info ni;
 
+				if (fsynced) {
+					marked = true;
+					break;
+				}
+
+				nid = nid_of_node(page);
+				get_node_info(sbi, nid, &ni);
+				//printk(KERN_DEBUG "[JATA DEBUG] cound_valid_addr: %u\n", af_header->mn.count_valid_addr);
+				af_header->mn.atm_addrs[af_header->mn.count_valid_addr++] = cpu_to_le32(ni.blk_addr);
 				f2fs_put_page(page, 0);
 				marked = true;
+
+				if (last_file) {
+					struct dnode_of_data dn;
+					bool is_nid_alloced = af_header->master_nid;
+
+					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 1\n", __func__);
+
+					if (!is_nid_alloced) {
+						if (!alloc_nid(sbi, &(af_header->master_nid)))
+							return -ENOSPC;
+
+						set_new_dnode(&dn, inode, NULL, NULL, af_header->master_nid);
+						page = new_node_page(&dn, MUFIT_NODE_OFFSET, NULL);
+						if (IS_ERR(page)) {
+							alloc_nid_failed(sbi, af_header->master_nid);
+							af_header->master_nid = 0;
+							return PTR_ERR(page);
+						}
+						alloc_nid_done(sbi, af_header->master_nid);
+					}
+					else {
+						page = get_node_page(sbi, af_header->master_nid);
+					}
+					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 2\n", __func__);
+
+					memcpy(page_address(page), &af_header->mn, sizeof(struct mufit_node));
+					set_fsync_mark(page, 1);
+					//set_page_dirty(page);
+					f2fs_put_page(page, 1);
+					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 3\n", __func__);
+
+					/*printk(KERN_DEBUG "[JATA DEBUG] (%s) Before writepage()\n", __func__);
+					ret = NODE_MAPPING(sbi)->a_ops->writepage(page, wbc);
+					printk(KERN_DEBUG "[JATA DEBUG] (%s) After writepage()\n", __func__);
+					f2fs_put_page(page, 1);*/
+					marked = false;
+					fsynced = true;
+					last_page = page;
+					//printk(KERN_DEBUG "[JATA DEBUG] (%s) master_nid: %u\n", __func__, af_header->master_nid);
+				}
+
 				break;
 			}
 		}
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 5\n", __func__);
 		pagevec_release(&pvec);
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 6\n", __func__);
 		cond_resched();
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 7\n", __func__);
 
-		if (ret || marked)
+		if (ret || marked || fsynced)
 			break;
 	}
-	if (!ret && last_file && !marked) {
-		f2fs_msg(sbi->sb, KERN_DEBUG,
-			"Retry to write fsync mark: ino=%u, idx=%lx",
-					ino, last_page->index);
+	if (!ret && !marked) {
+		if (!fsynced)
+			f2fs_msg(sbi->sb, KERN_DEBUG,
+				"Retry to write fsync mark: ino=%u, idx=%lx",
+						ino, last_page->index);
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 8\n", __func__);
 		lock_page(last_page);
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 9\n", __func__);
 		set_page_dirty(last_page);
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 10\n", __func__);
 		unlock_page(last_page);
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 11\n", __func__);
 		goto retry;
 	}
 	return ret ? -EIO: 0;
@@ -1757,6 +1764,7 @@ static int f2fs_write_node_page(struct page *page,
 		return 0;
 	}
 
+	//printk(KERN_DEBUG "[JATA DEBUG] (%s) nid: %u\n", __func__, nid);
 	set_page_writeback(page);
 	fio.old_blkaddr = ni.blk_addr;
 	write_node_page(nid, &fio);
@@ -1764,8 +1772,10 @@ static int f2fs_write_node_page(struct page *page,
 	dec_page_count(sbi, F2FS_DIRTY_NODES);
 	up_read(&sbi->node_write);
 
-	if (wbc->for_reclaim)
+	if (wbc->for_reclaim) {
+		//printk(KERN_DEBUG "[JATA DEBUG] (%s) for_reclaim is true\n", __func__);
 		f2fs_submit_merged_bio_cond(sbi, NULL, page, 0, NODE, WRITE);
+	}
 
 	unlock_page(page);
 

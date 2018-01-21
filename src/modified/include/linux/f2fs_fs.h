@@ -14,6 +14,8 @@
 #include <linux/pagemap.h>
 #include <linux/types.h>
 
+#define F2FS_MUFIT_H
+
 #define F2FS_SUPER_OFFSET		1024	/* byte-size offset */
 #define F2FS_MIN_LOG_SECTOR_SIZE	9	/* 9 bits for 512 bytes */
 #define F2FS_MAX_LOG_SECTOR_SIZE	12	/* 12 bits for 4096 bytes */
@@ -166,17 +168,13 @@ struct f2fs_extent {
 	__le32 len;		/* lengh of the extent */
 } __packed;
 
-/* Cheon - 161208
-*  Decrese 1 from ADDRS_PER_BLOCK, NIDS_PER_BLOCK and DEF_ADDRS_PER_INODE
-*  for retain 4 Byte to node footer.
-*/
 #define F2FS_NAME_LEN		255
 #define F2FS_INLINE_XATTR_ADDRS	50	/* 200 bytes for inline xattrs */
-#define DEF_ADDRS_PER_INODE	922	/* Address Pointers in an Inode */
+#define DEF_ADDRS_PER_INODE	923	/* Address Pointers in an Inode */
 #define DEF_NIDS_PER_INODE	5	/* Node IDs in an Inode */
 #define ADDRS_PER_INODE(inode)	addrs_per_inode(inode)
-#define ADDRS_PER_BLOCK		1017	/* Address Pointers in a Direct Block */
-#define NIDS_PER_BLOCK		1017	/* Node IDs in an Indirect Block */
+#define ADDRS_PER_BLOCK		1018	/* Address Pointers in a Direct Block */
+#define NIDS_PER_BLOCK		1018	/* Node IDs in an Indirect Block */
 
 #define ADDRS_PER_PAGE(page, inode)	\
 	(IS_INODE(page) ? ADDRS_PER_INODE(inode) : ADDRS_PER_BLOCK)
@@ -245,21 +243,21 @@ enum {
 
 #define OFFSET_BIT_MASK		(0x07)	/* (0x01 << OFFSET_BIT_SHIFT) - 1 */
 
-/* Cheon - 161208
-* Add checksum value in node footer.
-* Cheon - 161213
-* Change checksum to prev_atmaddr which points the previos file's last node
-* block address.
-*/
 struct node_footer {
 	__le32 nid;		/* node id */
 	__le32 ino;		/* inode nunmber */
 	__le32 flag;		/* include cold/fsync/dentry marks and offset */
 	__le64 cp_ver;		/* checkpoint version */
 	__le32 next_blkaddr;	/* next node page block address */
-//	__le32 checksum;	/* checksum value for atomic write */
-	__le32 prev_atmaddr;
 } __packed;
+
+#ifdef F2FS_MUFIT_H
+#define ADDRS_PER_MUFIT_NODE	(ADDRS_PER_BLOCK - 1)
+struct mufit_node {
+	__le32 count_valid_addr;
+	__le32 atm_addrs[ADDRS_PER_MUFIT_NODE];
+} __packed;
+#endif
 
 struct f2fs_node {
 	/* can be one of three types: inode, direct, and indirect types */
@@ -267,6 +265,9 @@ struct f2fs_node {
 		struct f2fs_inode i;
 		struct direct_node dn;
 		struct indirect_node in;
+#ifdef F2FS_MUFIT_H
+		struct mufit_node mn;
+#endif
 	};
 	struct node_footer footer;
 } __packed;
