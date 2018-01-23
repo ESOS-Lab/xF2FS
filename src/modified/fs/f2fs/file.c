@@ -1862,8 +1862,13 @@ err_out:
 static int f2fs_ioc_end_atomic_files(unsigned long arg)
 {
 	struct list_head *atomic_list = (struct list_head*)arg;
+	struct atomic_files_header *af_header = 
+			list_entry(atomic_list, struct atomic_files_header, list);
 	struct atomic_files *current_file;
 	struct atomic_files *temp;
+	struct page *page;
+	struct dnode_of_data dn;
+	struct inode *inode;
 
 	//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
 	if (!arg || !atomic_list) {
@@ -1872,12 +1877,25 @@ static int f2fs_ioc_end_atomic_files(unsigned long arg)
 	}
 
 	list_for_each_entry_safe(current_file, temp, atomic_list, list) {
+		inode = file_inode(current_file->file);
 		if (!(current_file->closed))
-			clear_inode_flag(file_inode(current_file->file), FI_ADDED_ATOMIC_FILE);
+			clear_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
 		kfree(current_file);
 	}
 
-	kfree(list_entry(atomic_list, struct atomic_files_header, list));
+	page = get_node_page(F2FS_I_SB(inode), af_header->master_nid);
+	if (IS_ERR(page)) {
+		return PTR_ERR(page);
+	}
+	else if (!page) {
+		kfree(af_header);
+		return -ENOENT;
+	}
+	set_new_dnode(&dn, inode, page, NULL, 0);
+	unlock_page(page);
+	truncate_node_atomic(&dn);
+
+	kfree(af_header );
 
 	return 0;
 }

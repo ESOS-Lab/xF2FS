@@ -24,6 +24,7 @@
 
 #define on_build_free_nids(nmi) mutex_is_locked(&nm_i->build_lock)
 
+extern void truncate_node_atomic(struct dnode_of_data *dn);
 static struct kmem_cache *nat_entry_slab;
 static struct kmem_cache *free_nid_slab;
 static struct kmem_cache *nat_entry_set_slab;
@@ -1541,10 +1542,10 @@ continue_unlock:
 					f2fs_put_page(page, 1);
 					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 3\n", __func__);
 
-					/*printk(KERN_DEBUG "[JATA DEBUG] (%s) Before writepage()\n", __func__);
-					ret = NODE_MAPPING(sbi)->a_ops->writepage(page, wbc);
-					printk(KERN_DEBUG "[JATA DEBUG] (%s) After writepage()\n", __func__);
-					f2fs_put_page(page, 1);*/
+					//printk(KERN_DEBUG "[JATA DEBUG] (%s) Before writepage()\n", __func__);
+					//ret = NODE_MAPPING(sbi)->a_ops->writepage(page, wbc);
+					//printk(KERN_DEBUG "[JATA DEBUG] (%s) After writepage()\n", __func__);
+					//f2fs_put_page(page, 1);
 					marked = false;
 					fsynced = true;
 					last_page = page;
@@ -2562,3 +2563,10 @@ void destroy_node_manager_caches(void)
 	kmem_cache_destroy(free_nid_slab);
 	kmem_cache_destroy(nat_entry_slab);
 }
+
+#ifdef F2FS_MUFIT
+void truncate_node_atomic(struct dnode_of_data *dn)
+{
+	truncate_node(dn);
+}
+#endif

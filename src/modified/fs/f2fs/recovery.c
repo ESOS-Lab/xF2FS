@@ -248,6 +248,59 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head)
 		if (!is_fsync_dnode(page))
 			goto next;
 
+#ifdef F2FS_MUFIT
+		if (IS_MUFIT_NODE(page)) {
+			struct f2fs_node *rn = F2FS_NODE(page);
+			struct dnode_of_data dn;
+			struct page *atm_page;
+			int i;
+
+			for (i = 0; i<rn->mn.count_valid_addr; i++) {
+				if (!is_valid_blkaddr(sbi, rn->mn.atm_addrs[i], META_POR))
+					return 0;
+
+				atm_page = get_tmp_page(sbi, rn->mn.atm_addrs[i]);
+
+				if (cp_ver != cpver_of_node(atm_page))
+					goto next;
+
+				f2fs_put_page(atm_page, 1);
+			}
+
+			for (i = 0; i<rn->mn.count_valid_addr; i++) {
+				atm_page = get_tmp_page(sbi, rn->mn.atm_addrs[i]);
+
+				entry = get_fsync_inode(head, ino_of_node(atm_page));
+				if (entry) {
+					if (!is_same_inode(entry->inode, atm_page))
+						continue;
+				} else {
+					inode = f2fs_iget(sbi->sb, ino_of_node(atm_page));
+					if (IS_ERR(inode)) {
+						err = PTR_ERR(inode);
+						if (err == -ENOENT) {
+							err = 0;
+							goto next;
+						}
+						break;
+					}
+
+					entry = add_fsync_inode(head, inode);
+					if (!entry) {
+						err = -ENOMEM;
+						iput(inode);
+						break;
+					}
+				}
+				f2fs_put_page(atm_page, 1);
+			}
+			inode = f2fs_iget(sbi->sb, ino_of_node(page));
+			set_new_dnode(&dn, inode, page, NULL, 0);
+			truncate_node_atomic(&dn);
+			goto next;
+		}
+#endif
+
 		entry = get_fsync_inode(head, ino_of_node(page));
 		if (entry) {
 			if (!is_same_inode(entry->inode, page))
