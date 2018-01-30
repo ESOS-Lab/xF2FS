@@ -1473,20 +1473,6 @@ continue_unlock:
 			f2fs_wait_on_page_writeback(page, NODE, true);
 			BUG_ON(PageWriteback(page));
 
-			/*if (page == last_page) {
-				set_fsync_mark(page, 1);
-				if (IS_INODE(page)) {
-					if (is_inode_flag_set(inode,
-								FI_DIRTY_INODE))
-						update_inode(inode, page);
-					set_dentry_mark(page,
-						need_dentry_mark(sbi, ino));
-				}*/
-				/*  may be written by other thread */
-				/*if (!PageDirty(page))
-					set_page_dirty(page);
-			}*/
-
 			if (!clear_page_dirty_for_io(page))
 				goto continue_unlock;
 
@@ -1507,7 +1493,6 @@ continue_unlock:
 
 				nid = nid_of_node(page);
 				get_node_info(sbi, nid, &ni);
-				//printk(KERN_DEBUG "[JATA DEBUG] cound_valid_addr: %u\n", af_header->mn.count_valid_addr);
 				af_header->mn.atm_addrs[af_header->mn.count_valid_addr++] = cpu_to_le32(ni.blk_addr);
 				f2fs_put_page(page, 0);
 				marked = true;
@@ -1515,8 +1500,6 @@ continue_unlock:
 				if (last_file) {
 					struct dnode_of_data dn;
 					bool is_nid_alloced = af_header->master_nid;
-
-					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 1\n", __func__);
 
 					if (!is_nid_alloced) {
 						if (!alloc_nid(sbi, &(af_header->master_nid)))
@@ -1534,32 +1517,21 @@ continue_unlock:
 					else {
 						page = get_node_page(sbi, af_header->master_nid);
 					}
-					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 2\n", __func__);
 
 					memcpy(page_address(page), &af_header->mn, sizeof(struct mufit_node));
 					set_fsync_mark(page, 1);
-					//set_page_dirty(page);
 					f2fs_put_page(page, 1);
-					//printk(KERN_DEBUG "[JATA DEBUG] (%s) 3\n", __func__);
 
-					//printk(KERN_DEBUG "[JATA DEBUG] (%s) Before writepage()\n", __func__);
-					//ret = NODE_MAPPING(sbi)->a_ops->writepage(page, wbc);
-					//printk(KERN_DEBUG "[JATA DEBUG] (%s) After writepage()\n", __func__);
-					//f2fs_put_page(page, 1);
 					marked = false;
 					fsynced = true;
 					last_page = page;
-					//printk(KERN_DEBUG "[JATA DEBUG] (%s) master_nid: %u\n", __func__, af_header->master_nid);
 				}
 
 				break;
 			}
 		}
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 5\n", __func__);
 		pagevec_release(&pvec);
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 6\n", __func__);
 		cond_resched();
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 7\n", __func__);
 
 		if (ret || marked || fsynced)
 			break;
@@ -1569,13 +1541,9 @@ continue_unlock:
 			f2fs_msg(sbi->sb, KERN_DEBUG,
 				"Retry to write fsync mark: ino=%u, idx=%lx",
 						ino, last_page->index);
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 8\n", __func__);
 		lock_page(last_page);
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 9\n", __func__);
 		set_page_dirty(last_page);
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 10\n", __func__);
 		unlock_page(last_page);
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) 11\n", __func__);
 		goto retry;
 	}
 	return ret ? -EIO: 0;

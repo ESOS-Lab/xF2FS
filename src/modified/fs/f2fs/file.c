@@ -380,7 +380,7 @@ sync_nodes:
 		goto out;
 	}
 
-	if (need_inode_block_update(sbi, ino)) {
+	if (need_inode_block_update(sbi, ino) && last_file) {
 		f2fs_mark_inode_dirty_sync(inode);
 		f2fs_write_inode(inode, NULL);
 		goto sync_nodes;
@@ -404,7 +404,6 @@ out:
 	f2fs_trace_ios(NULL, 1);
 	return ret;
 }
-
 #endif
 
 int f2fs_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
@@ -1539,37 +1538,8 @@ static int f2fs_release_file(struct inode *inode, struct file *filp)
 
 	/* some remained atomic pages should discarded */
 #ifdef F2FS_MUFIT
-	/*if (f2fs_is_atomic_file(inode)) {
-		struct f2fs_inode_info *fi = F2FS_I(inode);
-
-		if (f2fs_is_added_atomic_file(inode) && fi->af_list_owner_pid == current->pid) {
-			struct atomic_files_header *af_header = fi->af_list_header;
-			struct atomic_files *af = fi->af_list;
-
-			af_header->count_closed_files++;
-			af->closed = true;
-
-			if (af_header->count_files == af_header->count_closed_files)
-				f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
-			}
-			else if (!f2fs_is_added_atomic_file(inode))
-				drop_inmem_pages(inode);
-	}*/
-
 	if (f2fs_is_added_atomic_file(inode)) {
-		struct f2fs_inode_info *fi = F2FS_I(inode);
-		struct atomic_files_header *af_header = fi->af_list_header;
-		struct atomic_files *af = fi->af_list;
-
-		//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called owner\n", __func__);
-		af_header->count_closed_files++;
-		af->closed = true;
-
-		clear_inode_flag(file_inode(filp), FI_ADDED_ATOMIC_FILE);
-
-		if (af_header->count_files == af_header->count_closed_files) {
 			f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
-		}
 	}
 #endif
 	if (f2fs_is_atomic_file(inode))
@@ -1705,8 +1675,6 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	struct atomic_files *new_file;
 	struct f2fs_inode_info *fi = F2FS_I(file_inode(filp));
 
-	//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
-
 	if (f2fs_is_added_atomic_file(file_inode(filp))) {
 		//printk(KERN_DEBUG "[MUFIT DEBUG] The file is already added to another af_list\n");
 		return -EINVAL;
@@ -1755,7 +1723,6 @@ static int f2fs_ioc_start_atomic_files(unsigned long arg)
 	struct atomic_files *current_file;
 	int ret;
 
-	//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
 	if (!arg || !atomic_list) {
 		printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
 		return -ENOENT;
@@ -1815,7 +1782,6 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 	struct inode *inode;
 	int ret;
 
-	//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
 	if (!arg || !atomic_list) {
 		printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
 		return -ENOENT;
@@ -1870,7 +1836,6 @@ static int f2fs_ioc_end_atomic_files(unsigned long arg)
 	struct dnode_of_data dn;
 	struct inode *inode;
 
-	//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
 	if (!arg || !atomic_list) {
 		printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
 		return -ENOENT;

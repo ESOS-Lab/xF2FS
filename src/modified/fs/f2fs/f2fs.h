@@ -315,11 +315,11 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
 #define MUFIT_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) \
 				>> OFFSET_BIT_SHIFT)
 struct atomic_files_header {
-	struct mufit_node mn;
 	struct list_head list;
 	unsigned int count_files;
 	unsigned int count_closed_files;
 	nid_t master_nid;
+	struct mufit_node mn;
 };
 
 struct atomic_files {
