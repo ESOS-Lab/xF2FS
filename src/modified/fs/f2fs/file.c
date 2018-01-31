@@ -1539,7 +1539,9 @@ static int f2fs_release_file(struct inode *inode, struct file *filp)
 	/* some remained atomic pages should discarded */
 #ifdef F2FS_MUFIT
 	if (f2fs_is_added_atomic_file(inode)) {
-			f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
+	//	struct atomic_files_header *af_header = F2FS_I(inode)->af_list_header;
+	//		f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
+			clear_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
 	}
 #endif
 	if (f2fs_is_atomic_file(inode))
