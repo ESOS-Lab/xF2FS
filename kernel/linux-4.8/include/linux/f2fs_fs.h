@@ -14,8 +14,6 @@
 #include <linux/pagemap.h>
 #include <linux/types.h>
 
-#define F2FS_MUFIT_H
-
 #define F2FS_SUPER_OFFSET		1024	/* byte-size offset */
 #define F2FS_MIN_LOG_SECTOR_SIZE	9	/* 9 bits for 512 bytes */
 #define F2FS_MAX_LOG_SECTOR_SIZE	12	/* 12 bits for 4096 bytes */
@@ -251,23 +249,12 @@ struct node_footer {
 	__le32 next_blkaddr;	/* next node page block address */
 } __packed;
 
-#ifdef F2FS_MUFIT_H
-#define ADDRS_PER_MUFIT_NODE	(ADDRS_PER_BLOCK - 1)
-struct mufit_node {
-	__le32 count_valid_addr;
-	__le32 atm_addrs[ADDRS_PER_MUFIT_NODE];
-} __packed;
-#endif
-
 struct f2fs_node {
 	/* can be one of three types: inode, direct, and indirect types */
 	union {
 		struct f2fs_inode i;
 		struct direct_node dn;
 		struct indirect_node in;
-#ifdef F2FS_MUFIT_H
-		struct mufit_node mn;
-#endif
 	};
 	struct node_footer footer;
 } __packed;
