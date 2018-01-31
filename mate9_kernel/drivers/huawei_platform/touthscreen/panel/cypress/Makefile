@@ -1,1 +1,0 @@
-obj-$(CONFIG_CYPRESS_TS) += cypress.o

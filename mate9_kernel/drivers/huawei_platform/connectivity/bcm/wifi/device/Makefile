@@ -1,5 +1,0 @@
-obj-$(CONFIG_BCMDHD) += dev_wifi.o
-
-ccflags-y += -DCONFIG_DHD_USE_STATIC_BUF
-ccflags-y += -DHW_SOFTAP_THROUGHPUT_OPTIMIZE
-ccflags-y += -DHW_WIFI_DRIVER_NORMALIZE

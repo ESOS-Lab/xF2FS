@@ -1,4 +1,0 @@
-obj-$(CONFIG_HISI_LPMCU_BB) += rdr_hisi_lpm3.o
-
-ccflags-y += -I$(srctree)/drivers/hisi/ap/platform/$(OBB_PRODUCT_NAME)
-

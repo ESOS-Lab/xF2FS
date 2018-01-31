@@ -1,2 +1,0 @@
-source "drivers/huawei_platform/usb/pd/ti/Kconfig"
-source "drivers/huawei_platform/usb/pd/richtek/Kconfig"

@@ -1,1 +1,0 @@
-obj-$(CONFIG_ANC_MAX14744)	:= anc_max14744.o
