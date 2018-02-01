@@ -1539,9 +1539,9 @@ static int f2fs_release_file(struct inode *inode, struct file *filp)
 	/* some remained atomic pages should discarded */
 #ifdef F2FS_MUFIT
 	if (f2fs_is_added_atomic_file(inode)) {
-	//	struct atomic_files_header *af_header = F2FS_I(inode)->af_list_header;
-	//		f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
-			clear_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
+		struct atomic_files_header *af_header = F2FS_I(inode)->af_list_header;
+
+		f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
 	}
 #endif
 	if (f2fs_is_atomic_file(inode))
@@ -1837,6 +1837,7 @@ static int f2fs_ioc_end_atomic_files(unsigned long arg)
 	struct page *page;
 	struct dnode_of_data dn;
 	struct inode *inode;
+	int i = 0;
 
 	if (!arg || !atomic_list) {
 		printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
@@ -1845,24 +1846,24 @@ static int f2fs_ioc_end_atomic_files(unsigned long arg)
 
 	list_for_each_entry_safe(current_file, temp, atomic_list, list) {
 		inode = file_inode(current_file->file);
-		if (!(current_file->closed))
-			clear_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
+		clear_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
 		kfree(current_file);
 	}
 
-	page = get_node_page(F2FS_I_SB(inode), af_header->master_nid);
-	if (IS_ERR(page)) {
-		return PTR_ERR(page);
+	if (af_header->master_nid) {
+		page = get_node_page(F2FS_I_SB(inode), af_header->master_nid);
+		if (IS_ERR(page)) {
+			return PTR_ERR(page);
+		}
+		else if (!page) {
+			kfree(af_header);
+			return -ENOENT;
+		}
+		set_new_dnode(&dn, inode, NULL, page, af_header->master_nid);
+		truncate_node_atomic(&dn);
 	}
-	else if (!page) {
-		kfree(af_header);
-		return -ENOENT;
-	}
-	set_new_dnode(&dn, inode, page, NULL, 0);
-	unlock_page(page);
-	truncate_node_atomic(&dn);
 
-	kfree(af_header );
+	kfree(af_header);
 
 	return 0;
 }

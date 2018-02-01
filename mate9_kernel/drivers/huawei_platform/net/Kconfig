@@ -1,6 +1,0 @@
-source "drivers/huawei_platform/net/ipv4/Kconfig"
-source "drivers/huawei_platform/net/hw_netfilter/Kconfig"
-source "drivers/huawei_platform/net/commstat/Kconfig"
-
-
-

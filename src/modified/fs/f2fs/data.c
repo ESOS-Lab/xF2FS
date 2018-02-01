@@ -109,9 +109,7 @@ static inline void __submit_bio(struct f2fs_sb_info *sbi,
 			current->plug && (type == DATA || type == NODE))
 			blk_finish_plug(current->plug);
 	}
-	//printk(KERN_DEBUG "[JATA DEBUG] (%s) Before submit_bio()\n", __func__);
 	submit_bio(bio);
-	//printk(KERN_DEBUG "[JATA DEBUG] (%s) After submit_bio()\n", __func__);
 }
 
 static void __submit_merged_bio(struct f2fs_bio_info *io)

@@ -1486,13 +1486,14 @@ continue_unlock:
 				nid_t nid;
 				struct node_info ni;
 
+				nid = nid_of_node(page);
+				get_node_info(sbi, nid, &ni);
+
 				if (fsynced) {
 					marked = true;
 					break;
 				}
 
-				nid = nid_of_node(page);
-				get_node_info(sbi, nid, &ni);
 				af_header->mn.atm_addrs[af_header->mn.count_valid_addr++] = cpu_to_le32(ni.blk_addr);
 				f2fs_put_page(page, 0);
 				marked = true;
@@ -1733,7 +1734,6 @@ static int f2fs_write_node_page(struct page *page,
 		return 0;
 	}
 
-	//printk(KERN_DEBUG "[JATA DEBUG] (%s) nid: %u\n", __func__, nid);
 	set_page_writeback(page);
 	fio.old_blkaddr = ni.blk_addr;
 	write_node_page(nid, &fio);
@@ -1742,7 +1742,6 @@ static int f2fs_write_node_page(struct page *page,
 	up_read(&sbi->node_write);
 
 	if (wbc->for_reclaim) {
-		//printk(KERN_DEBUG "[JATA DEBUG] (%s) for_reclaim is true\n", __func__);
 		f2fs_submit_merged_bio_cond(sbi, NULL, page, 0, NODE, WRITE);
 	}
 

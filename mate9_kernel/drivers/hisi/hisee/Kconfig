@@ -1,6 +1,0 @@
-config HISI_HISEE
-	depends on HISI_MAILBOX
-	bool "Hisilicon hisee "
-	default n
-	help
-	  Hi3xxx hisee driver
