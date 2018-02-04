@@ -304,20 +304,25 @@ extern int f2fs_nat_fiemap(struct file *filp, unsigned long arg);
 #define F2FS_IOCTL_MAGIC		0xf5
 #define F2FS_IOC_START_ATOMIC_WRITE	_IO(F2FS_IOCTL_MAGIC, 1)
 #define F2FS_IOC_COMMIT_ATOMIC_WRITE	_IO(F2FS_IOCTL_MAGIC, 2)
+#ifdef F2FS_MUFIT
+#define F2FS_IOC_ADD_ATOMIC_FILE  _IO(F2FS_IOCTL_MAGIC, 3)
+#define F2FS_IOC_START_ATOMIC_WRITE_FILES _IO(F2FS_IOCTL_MAGIC, 4)
+#define F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES  _IO(F2FS_IOCTL_MAGIC, 5)
+#define F2FS_IOC_END_ATOMIC_WRITE_FILES _IO(F2FS_IOCTL_MAGIC, 6)
+#define F2FS_IOC_START_VOLATILE_WRITE _IO(F2FS_IOCTL_MAGIC, 7)
+#define F2FS_IOC_RELEASE_VOLATILE_WRITE _IO(F2FS_IOCTL_MAGIC, 8)
+#define F2FS_IOC_ABORT_VOLATILE_WRITE _IO(F2FS_IOCTL_MAGIC, 9)
+#define F2FS_IOC_GARBAGE_COLLECT	_IO(F2FS_IOCTL_MAGIC, 10)
+#define F2FS_IOC_WRITE_CHECKPOINT	_IO(F2FS_IOCTL_MAGIC, 11)
+#define F2FS_IOC_DEFRAGMENT		_IO(F2FS_IOCTL_MAGIC, 12)
+#else
 #define F2FS_IOC_START_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 3)
 #define F2FS_IOC_RELEASE_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 4)
 #define F2FS_IOC_ABORT_VOLATILE_WRITE	_IO(F2FS_IOCTL_MAGIC, 5)
 #define F2FS_IOC_GARBAGE_COLLECT	_IO(F2FS_IOCTL_MAGIC, 6)
 #define F2FS_IOC_WRITE_CHECKPOINT	_IO(F2FS_IOCTL_MAGIC, 7)
 #define F2FS_IOC_DEFRAGMENT		_IO(F2FS_IOCTL_MAGIC, 8)
-
-#ifdef F2FS_MUFIT
-#define F2FS_IOC_ADD_ATOMIC_FILE	_IO(F2FS_IOCTL_MAGIC, 9)
-#define F2FS_IOC_START_ATOMIC_WRITE_FILES	_IO(F2FS_IOCTL_MAGIC, 10)
-#define F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES	_IO(F2FS_IOCTL_MAGIC, 11)
-#define F2FS_IOC_END_ATOMIC_WRITE_FILES	_IO(F2FS_IOCTL_MAGIC, 12)
 #endif
-
 
 #define F2FS_IOC_NAT_FIEMAP		_IOWR(F2FS_IOCTL_MAGIC, 0x32, struct f2fs_fiemap_buf)
 
@@ -345,25 +350,20 @@ extern int f2fs_nat_fiemap(struct file *filp, unsigned long arg);
 #endif
 
 #ifdef F2FS_MUFIT
-/*
- * Header of a atomic file list.
- * It is exist every atomic file list.
- */
+#define MUFIT_NODE_OFFSET  ((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
+
 struct atomic_files_header {
-	struct list_head list;	/* atomic file list head */
-	__le32 prev_atmaddr;	/* block address of node that is written before */
-	unsigned int count_files;	/* count for files in this atomic list */
-	unsigned int count_closed_files;	/* count for files that are closed in this atomic list */
+  struct list_head list;
+  unsigned int count_files;
+  unsigned int count_closed_files;
+  nid_t master_nid;
+  struct mufit_node mn;
 };
 
-/*
- * Endtry of a atomic file list.
- * It is exist every file in atomic file list.
- */
 struct atomic_files {
-	struct list_head list;	/* list head entry */
-	struct file *file;	/* file pointer */
-	bool closed;	/* close flag that indicate whether this file is closed */
+  struct list_head list;
+  struct file *file;
+  bool closed;
 };
 #endif
 
@@ -1665,9 +1665,6 @@ enum {
 	FI_UPDATE_WRITE,	/* inode has in-place-update data */
 	FI_NEED_IPU,		/* used for ipu per file */
 	FI_ATOMIC_FILE,		/* indicate atomic file */
-#ifdef F2FS_MUFIT
-	FI_ADDED_ATOMIC_FILE,	/* indicate whether this file is added some atomic list*/
-#endif
 	FI_VOLATILE_FILE,	/* indicate volatile file */
 	FI_FIRST_BLOCK_WRITTEN,	/* indicate #0 data block was written */
 	FI_DROP_CACHE,		/* drop dirty page cache */
@@ -1675,6 +1672,9 @@ enum {
 	FI_INLINE_DOTS,		/* indicate inline dot dentries */
 	FI_DO_DEFRAG,		/* indicate defragment is running */
 	FI_DIRTY_FILE,		/* indicate regular/symlink has dirty pages */
+#ifdef F2FS_MUFIT
+	FI_ADDED_ATOMIC_FILE,
+#endif
 };
 
 static inline void set_inode_flag(struct f2fs_inode_info *fi, int flag)
@@ -1909,9 +1909,6 @@ static inline void *f2fs_kvzalloc(size_t size, gfp_t flags)
  * file.c
  */
 int f2fs_sync_file(struct file *, loff_t, loff_t, int);
-#ifdef F2FS_MUFIT
-int f2fs_sync_files(struct file *file, loff_t start, loff_t end, int datasync, bool last_file, struct atomic_files_header *af_header);
-#endif
 void truncate_data_blocks(struct dnode_of_data *);
 int truncate_blocks(struct inode *, u64, bool);
 int f2fs_truncate(struct inode *, bool);
@@ -2022,10 +2019,8 @@ struct page *get_node_page_ra(struct page *, int);
 void sync_inode_page(struct dnode_of_data *);
 int sync_node_pages(struct f2fs_sb_info *, nid_t, struct writeback_control *);
 #ifdef F2FS_MUFIT
-/*int sync_node_pages_atomic(struct f2fs_sb_info *sbi, nid_t ino, struct writeback_control *wbc,
-						bool last_file, struct atomic_files_header *af_header);*/
-int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
-                struct writeback_control *wbc, bool last_file, struct atomic_files_header *af_header);
+int sync_node_pages_atomic(struct f2fs_sb_info *, nid_t, struct inode *,
+      struct writeback_control *, bool, struct atomic_files_header *);
 #endif
 void build_free_nids(struct f2fs_sb_info *, bool);
 bool alloc_nid(struct f2fs_sb_info *, nid_t *);

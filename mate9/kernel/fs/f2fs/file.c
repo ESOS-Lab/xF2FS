@@ -32,7 +32,10 @@
 #include <trace/events/f2fs.h>
 
 #ifdef F2FS_MUFIT
-static int f2fs_ioc_end_atomic_write_files(unsigned long arg);
+static int f2fs_ioc_add_atomic_files(struct file *filp, unsigned long arg);
+static int f2fs_ioc_start_atomic_files(unsigned long arg);
+static int f2fs_ioc_commit_atomic_files(unsigned long arg);
+static int f2fs_ioc_end_atomic_files(unsigned long arg);
 #endif
 
 static int f2fs_vm_page_mkwrite(struct vm_area_struct *vma,
@@ -300,121 +303,111 @@ out:
 }
 
 #ifdef F2FS_MUFIT
-int f2fs_sync_files(struct file *file, loff_t start, loff_t end, int datasync, bool last_file, 
-							struct atomic_files_header *af_header)
+int f2fs_sync_files(struct file *file, loff_t start, loff_t end, int datasync, bool last_file, struct atomic_files_header *af_header)
 {
-	struct inode *inode = file->f_mapping->host;
-	struct f2fs_inode_info *fi = F2FS_I(inode);
-	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
-	nid_t ino = inode->i_ino;
-	int ret = 0;
-	bool need_cp = false;
-	struct writeback_control wbc = {
-		.sync_mode = WB_SYNC_ALL,
-		.nr_to_write = LONG_MAX,
-		.for_reclaim = 0,
-	};
+  struct inode *inode = file->f_mapping->host;
+  struct f2fs_inode_info *fi = F2FS_I(inode);
+  struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+  nid_t ino = inode->i_ino;
+  int ret = 0;
+  bool need_cp = false;
+  struct writeback_control wbc = {
+    .sync_mode = WB_SYNC_ALL,
+    .nr_to_write = LONG_MAX,
+    .for_reclaim = 0,
+  };
 
-	if (unlikely(f2fs_readonly(inode->i_sb)))
-		return 0;
+  if (unlikely(f2fs_readonly(inode->i_sb)))
+    return 0;
 
-	trace_f2fs_sync_file_enter(inode);
+  trace_f2fs_sync_file_enter(inode);
 
-	/* if fdatasync is triggered, let's do in-place-update */
-	if (datasync || get_dirty_pages(inode) <= SM_I(sbi)->min_fsync_blocks)
-		set_inode_flag(fi, FI_NEED_IPU);
-	ret = filemap_write_and_wait_range(inode->i_mapping, start, end);
-	clear_inode_flag(fi, FI_NEED_IPU);
+  /* if fdatasync is triggered, let's do in-place-update */
+  if (get_dirty_pages(inode) <= SM_I(sbi)->min_fsync_blocks)
+    set_inode_flag(fi, FI_NEED_IPU);
+  ret = filemap_write_and_wait_range(inode->i_mapping, start, end);
+  clear_inode_flag(fi, FI_NEED_IPU);
 
-	if (ret) {
-		trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
-		return ret;
-	}
+  if (ret) {
+    trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
+    return ret;
+  }
 
-	inode_lock(inode);
+  /* if the inode is dirty, let's recover all the time */
+  if (!datasync && is_inode_flag_set(fi, FI_DIRTY_INODE)) {
+    update_inode_page(inode);
+    goto go_write;
+  }
 
-	/* if the inode is dirty, let's recover all the time */
-	if (!datasync || is_inode_flag_set(fi, FI_ISIZE_CHANGED)) {
-		f2fs_write_inode(inode, NULL);
-		goto go_write;
-	}
+  /*
+   * if there is no written data, don't waste time to write recovery info.
+   */
+  if (!is_inode_flag_set(fi, FI_APPEND_WRITE) &&
+      !exist_written_data(sbi, ino, APPEND_INO)) {
 
-	/*
-	 * if there is no written data, don't waste time to write recovery info.
-	 */
-	/*lint -save -e527*/
-	if (!is_inode_flag_set(fi, FI_APPEND_WRITE) &&
-			!exist_written_data(sbi, ino, APPEND_INO)) {
+    /* it may call write_inode just prior to fsync */
+    if (need_inode_page_update(sbi, ino))
+      goto go_write;
 
-		/* it may call write_inode just prior to fsync */
-		if (need_inode_page_update(sbi, ino))
-			goto go_write;
-
-		if (is_inode_flag_set(fi, FI_UPDATE_WRITE) ||
-				exist_written_data(sbi, ino, UPDATE_INO))
-			goto flush_out;
-		goto out;
-	}
-	/*lint -restore*/
+    if (is_inode_flag_set(fi, FI_UPDATE_WRITE) ||
+        exist_written_data(sbi, ino, UPDATE_INO))
+      goto flush_out;
+    goto out;
+  }
 go_write:
-	/*
-	 * Both of fdatasync() and fsync() are able to be recovered from
-	 * sudden-power-off.
-	 */
-	down_read(&fi->i_sem);
-	need_cp = need_do_checkpoint(inode);
-	up_read(&fi->i_sem);
+  /* guarantee free sections for fsync */
+  f2fs_balance_fs(sbi);
 
-	if (need_cp) {
-		/* all the dirty node pages should be flushed for POR */
-		ret = f2fs_sync_fs(inode->i_sb, 1);
+  /*
+   * Both of fdatasync() and fsync() are able to be recovered from
+   * sudden-power-off.
+   */
+  down_read(&fi->i_sem);
+  need_cp = need_do_checkpoint(inode);
+  up_read(&fi->i_sem);
 
-		/*
-		 * We've secured consistency through sync_fs. Following pino
-		 * will be used only for fsynced inodes after checkpoint.
-		 */
-		try_to_fix_pino(inode);
-		clear_inode_flag(fi, FI_APPEND_WRITE);
-		clear_inode_flag(fi, FI_UPDATE_WRITE);
-		goto out;
-	}
+  if (need_cp) {
+    /* all the dirty node pages should be flushed for POR */
+    ret = f2fs_sync_fs(inode->i_sb, 1);
+
+    /*
+     * We've secured consistency through sync_fs. Following pino
+     * will be used only for fsynced inodes after checkpoint.
+     */
+    try_to_fix_pino(inode);
+    clear_inode_flag(fi, FI_APPEND_WRITE);
+    clear_inode_flag(fi, FI_UPDATE_WRITE);
+    goto out;
+  }
 sync_nodes:
-	sync_node_pages(sbi, ino, &wbc);
-	//sync_node_pages_atomic(sbi, ino, &wbc, last_file, af_header);
-	//fsync_node_pages_atomic(sbi, inode, &wbc, last_file, af_header);
+  sync_node_pages_atomic(sbi, ino, inode, &wbc, last_file, af_header);
 
-	/* if cp_error was enabled, we should avoid infinite loop */
-	if (unlikely(f2fs_cp_error(sbi))) {
-		ret = -EIO;
-		goto out;
-	}
+  /* if cp_error was enabled, we should avoid infinite loop */
+  if (unlikely(f2fs_cp_error(sbi)))
+    goto out;
 
-	if (need_inode_block_update(sbi, ino)) {
-		mark_inode_dirty_sync(inode);
-		f2fs_write_inode(inode, NULL);
-		goto sync_nodes;
-	}
+  /*if (need_inode_block_update(sbi, ino) && last_file) {
+    mark_inode_dirty_sync(inode);
+    f2fs_write_inode(inode, NULL);
+    goto sync_nodes;
+  }*/
 
-	ret = wait_on_node_pages_writeback(sbi, ino);
-	if (ret)
-		goto out;
+  ret = wait_on_node_pages_writeback(sbi, ino);
+  if (ret)
+    goto out;
 
-	/* once recovery info is written, don't need to tack this */
-	remove_ino_entry(sbi, ino, APPEND_INO);
-	clear_inode_flag(fi, FI_APPEND_WRITE);
-
-	clear_inode_flag(fi, FI_ISIZE_CHANGED);
+  /* once recovery info is written, don't need to tack this */
+  remove_dirty_inode(sbi, ino, APPEND_INO);
+  clear_inode_flag(fi, FI_APPEND_WRITE);
 flush_out:
-	remove_ino_entry(sbi, ino, UPDATE_INO);
-	clear_inode_flag(fi, FI_UPDATE_WRITE);
-	if (last_file)
-		ret = f2fs_issue_flush(sbi);
-	f2fs_update_time(sbi, REQ_TIME);
+  remove_dirty_inode(sbi, ino, UPDATE_INO);
+  clear_inode_flag(fi, FI_UPDATE_WRITE);
+  if (last_file)
+    ret = f2fs_issue_flush(sbi);
 out:
-	inode_unlock(inode);
-	trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
-	f2fs_trace_ios(NULL, 1);
-	return ret;
+  trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
+  f2fs_trace_ios(NULL, NULL, 1);
+  return ret;
 }
 #endif
 
@@ -1403,27 +1396,16 @@ static int f2fs_release_file(struct inode *inode, struct file *filp)
 			atomic_read(&inode->i_writecount) != 1)
 		return 0;
 
-	/* some remained atomic pages should discarded */
 #ifdef F2FS_MUFIT
-	if (f2fs_is_atomic_file(inode)) {
-		struct f2fs_inode_info *fi = F2FS_I(inode);
-		if (f2fs_is_added_atomic_file(inode) && fi->af_list_owner_pid == current->pid) {
-			struct atomic_files_header *af_header = fi->af_list_header;
-			struct atomic_files *af = fi->af_list;
+  if (f2fs_is_added_atomic_file(inode)) {
+    struct atomic_files_header *af_header = F2FS_I(inode)->af_list_header;
+    f2fs_ioc_end_atomic_files((unsigned long)&af_header->list);
+  }
+#endif
 
-			af_header->count_closed_files++;
-			af->closed = true;
-
-			if (af_header->count_files == af_header->count_closed_files)
-				f2fs_ioc_end_atomic_write_files((unsigned long)&af_header->list);
-		}
-		else if (!f2fs_is_added_atomic_file(inode))
-			drop_inmem_pages(inode);
-	}
-#else
+	/* some remained atomic pages should discarded */
 	if (f2fs_is_atomic_file(inode))
 		drop_inmem_pages(inode);
-#endif
 	if (f2fs_is_volatile_file(inode)) {
 		clear_inode_flag(F2FS_I(inode), FI_VOLATILE_FILE);
 		set_inode_flag(F2FS_I(inode), FI_DROP_CACHE);
@@ -1526,9 +1508,6 @@ static int f2fs_ioc_start_atomic_write(struct file *filp)
 		return ret;
 
 	set_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
-#ifdef F2FS_MUFIT
-	F2FS_I(inode)->af_list_owner_pid = current->pid;
-#endif
 	f2fs_update_time(F2FS_I_SB(inode), REQ_TIME);
 
 	if (!get_dirty_pages(inode))
@@ -1542,6 +1521,76 @@ static int f2fs_ioc_start_atomic_write(struct file *filp)
 		clear_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
 	return ret;
 }
+
+#ifdef F2FS_MUFIT
+static int f2fs_ioc_add_atomic_files(struct file *filp, unsigned long arg)
+{
+  struct list_head **atomic_list = (struct list_head**) arg;
+  struct atomic_files *new_file;
+  struct f2fs_inode_info *fi = F2FS_I(file_inode(filp));
+
+//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
+  if (f2fs_is_added_atomic_file(file_inode(filp))) {
+    //printk(KERN_DEBUG "[MUFIT DEBUG] The file is already added to another af_list\n");
+    return -EINVAL;
+  }
+
+  set_inode_flag(F2FS_I(file_inode(filp)), FI_ADDED_ATOMIC_FILE);
+
+  if ((*atomic_list) == NULL) {
+    struct atomic_files_header *af_header =
+      (struct atomic_files_header*)kmalloc(sizeof(struct atomic_files_header), GFP_KERNEL);
+
+    if (af_header == NULL) {
+      printk(KERN_DEBUG "[MUFIT DEBUG] AF header creation failed\n");
+      return -ENOMEM;
+    }
+
+    INIT_LIST_HEAD(&af_header->list);
+    af_header->mn.count_valid_addr = cpu_to_le32(0);
+    af_header->count_files = 0;
+    af_header->count_closed_files = 0;
+    af_header->master_nid = 0;
+    *atomic_list = &af_header->list;
+  }
+
+  new_file = (struct atomic_files*)kmalloc(sizeof(struct atomic_files), GFP_KERNEL);
+
+  if (new_file == NULL) {
+    printk(KERN_DEBUG "[MUFIT DEBUG] AF list creation failed\n");
+    return -ENOMEM;
+  }
+
+  new_file->file = filp;
+  new_file->closed = false;
+  list_entry(*atomic_list, struct atomic_files_header, list)->count_files++;
+  list_add_tail(&new_file->list, *atomic_list);
+
+  fi->af_list_header = list_entry(*atomic_list, struct atomic_files_header, list);
+  fi->af_list = new_file;
+
+  return 0;
+}
+
+static int f2fs_ioc_start_atomic_files(unsigned long arg)
+{
+  struct list_head *atomic_list = (struct list_head*)arg;
+  struct atomic_files *current_file;
+  int ret;
+
+//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
+  if (!arg || !atomic_list) {
+    printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
+    return -ENOENT;
+  }
+
+  list_for_each_entry(current_file, atomic_list, list) {
+    ret = f2fs_ioc_start_atomic_write(current_file->file);
+  }
+
+  return ret;
+}
+#endif
 
 static int f2fs_ioc_commit_atomic_write(struct file *filp)
 {
@@ -1574,122 +1623,99 @@ err_out:
 }
 
 #ifdef F2FS_MUFIT
-static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
+static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 {
-	struct list_head **atomic_list = (struct list_head**)arg;
-	struct atomic_files *new_file;
-	struct f2fs_inode_info *fi = F2FS_I(file_inode(filp));
+  struct list_head* atomic_list = (struct list_head*) arg;
+  struct atomic_files* current_file;
+  struct atomic_files_header *af_header =
+      list_entry(atomic_list, struct atomic_files_header, list);
+  struct inode *inode;
+  int ret = 0;
 
-	if (f2fs_is_added_atomic_file(file_inode(filp))) {
-		printk(KERN_DEBUG "[MUFIT DEBUG] The file is already added to another af_list\n");
-		return -EINVAL;
-	}
+//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
+  if (!arg || !atomic_list) {
+    printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
+    return -ENOENT;
+  }
 
-	set_inode_flag(fi, FI_ADDED_ATOMIC_FILE);
+  list_for_each_entry(current_file, atomic_list, list) {
+    inode = file_inode(current_file->file);
 
-	if (!(*atomic_list)) {
-		struct atomic_files_header *af_header;
+    if(!inode_owner_or_capable(inode))
+      return -EACCES;
 
-		af_header = (struct atomic_files_header*)kmalloc(sizeof(struct atomic_files_header), GFP_KERNEL);
+    if (f2fs_is_volatile_file(inode))
+      goto err_out;
 
-		if (!af_header) {
-			printk("[MUFIT DEBUG] AF header creation failed\n");
-			return -ENOMEM;
-		}
+    ret = mnt_want_write_file(current_file->file);
+    if (ret)
+      return ret;
 
-		INIT_LIST_HEAD(&af_header->list);
-		af_header->prev_atmaddr = cpu_to_le32(0);
-		af_header->count_files = 0;
-		af_header->count_closed_files = 0;
-		*atomic_list = &af_header->list;
-	}
+    if (f2fs_is_atomic_file(inode)) {
+      clear_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
+      commit_inmem_pages(inode, false);
+      if (ret) {
+        set_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
+goto err_out;
+      }
+      F2FS_I(inode)->af_list_owner_pid = 0;
+    }
 
-	new_file = (struct atomic_files*)kmalloc(sizeof(struct atomic_files), GFP_KERNEL);
+    ret = f2fs_sync_files(current_file->file, 0, LLONG_MAX, 0,
+    current_file->list.next == atomic_list, af_header);
 
-	if (!new_file) {
-		printk(KERN_DEBUG "[MUFIT DEBUG] AF list creation failed\n");
-		return -ENOMEM;
-	}
-
-	new_file->file = filp;
-	new_file->closed = false;
-	list_entry(*atomic_list, struct atomic_files_header, list)->count_files++;
-	list_add_tail(&new_file->list, *atomic_list);
-
-	fi->af_list_header = list_entry(*atomic_list, struct atomic_files_header, list);
-	fi->af_list = new_file;
-
-	return 0;
-}
-
-static int f2fs_ioc_start_atomic_write_files(unsigned long arg)
-{
-	struct list_head *atomic_list = (struct list_head*) arg;
-	struct atomic_files *current_file;
-	int ret = 0;
-
-	list_for_each_entry(current_file, atomic_list, list) {
-		ret = f2fs_ioc_start_atomic_write(current_file->file);
-	}
-
-	return ret;
-}
-
-static int f2fs_ioc_commit_atomic_write_files(unsigned long arg)
-{
-	struct list_head *atomic_list = (struct list_head*) arg;
-	struct atomic_files_header *af_header = list_entry(atomic_list, struct atomic_files_header, list);
-	struct atomic_files *current_file;
-	struct inode *inode;
-	bool last_file = false;
-	int ret = 0;
-
-	list_for_each_entry(current_file, atomic_list, list) {
-		inode = file_inode(current_file->file);
-
-		if (!inode_owner_or_capable(inode))
-			return -EACCES;
-
-		if (f2fs_is_volatile_file(inode))
-			return 0;
-
-		ret = mnt_want_write_file(current_file->file);
-		if (ret)
-			return ret;
-
-		if (f2fs_is_atomic_file(inode)) {
-			clear_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
-			ret = commit_inmem_pages(inode);
-			if (ret) {
-				set_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
-				goto err_out;
-			}
-			F2FS_I(inode)->af_list_owner_pid = 0;
-		}
-
-		//ret = f2fs_sync_file(filp, 0, LLONG_MAX, 0);
-		last_file = current_file->list.next == atomic_list;
-		ret = f2fs_sync_files(current_file->file, 0, LLONG_MAX, 0, last_file, af_header);
 err_out:
-		mnt_drop_write_file(current_file->file);
-	}
-	return ret;
+    mnt_drop_write_file(current_file->file);
+  }
+
+  af_header->mn.count_valid_addr = 0;
+
+  return ret;
 }
 
-static int f2fs_ioc_end_atomic_write_files(unsigned long arg)
+static int f2fs_ioc_end_atomic_files(unsigned long arg)
 {
-	struct list_head *atomic_list = (struct list_head*) arg;
-	struct atomic_files *current_file;
-	struct atomic_files *temp;
+  struct list_head *atomic_list = (struct list_head*)arg;
+  struct atomic_files_header *af_header =
+      list_entry(atomic_list, struct atomic_files_header, list);
+  struct atomic_files *current_file;
+  struct atomic_files *temp;
+  struct page *page;
+  struct dnode_of_data dn;
+  struct inode *inode = NULL;
 
-	list_for_each_entry_safe(current_file, temp, atomic_list, list) {
-		clear_inode_flag(F2FS_I(file_inode(current_file->file)), FI_ADDED_ATOMIC_FILE);
-		kfree(current_file);
-	}
-	kfree(list_entry(atomic_list, struct atomic_files_header, list));
-	return 0;
+//printk(KERN_DEBUG "[MUFIT DEBUG] %s is called\n", __func__);
+  if (!arg || !atomic_list) {
+    printk(KERN_DEBUG "[MUFIT DEBUG] atomic list is NULL\n");
+    return -ENOENT;
+  }
+
+  list_for_each_entry_safe(current_file, temp, atomic_list, list) {
+    inode = file_inode(current_file->file);
+    if (!(current_file->closed))
+      clear_inode_flag(F2FS_I(inode), FI_ADDED_ATOMIC_FILE);
+    kfree(current_file);
+  }
+
+  if (af_header->master_nid) {
+    page = get_node_page(F2FS_I_SB(inode), af_header->master_nid);
+    if (IS_ERR(page)) {
+      return PTR_ERR(page);
+    }
+    else if (!page) {
+      kfree(af_header);
+      return -ENOENT;
+    }
+    set_new_dnode(&dn, inode, NULL, page, af_header->master_nid);
+    truncate_node_atomic(&dn);
+  }
+
+  kfree(af_header);
+
+  return 0;
 }
 #endif
+
 
 static int f2fs_ioc_start_volatile_write(struct file *filp)
 {
@@ -2144,6 +2170,16 @@ out:
 long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	switch (cmd) {
+#ifdef F2FS_MUFIT
+  case F2FS_IOC_ADD_ATOMIC_FILE:
+    return f2fs_ioc_add_atomic_files(filp, arg);
+  case F2FS_IOC_START_ATOMIC_WRITE_FILES:
+    return f2fs_ioc_start_atomic_files(arg);
+  case F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES:
+    return f2fs_ioc_commit_atomic_files(arg);
+  case F2FS_IOC_END_ATOMIC_WRITE_FILES:
+    return f2fs_ioc_end_atomic_files(arg);
+#endif
 	case F2FS_IOC_GETFLAGS:
 		return f2fs_ioc_getflags(filp, arg);
 	case F2FS_IOC_SETFLAGS:
@@ -2154,16 +2190,6 @@ long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return f2fs_ioc_start_atomic_write(filp);
 	case F2FS_IOC_COMMIT_ATOMIC_WRITE:
 		return f2fs_ioc_commit_atomic_write(filp);
-#ifdef F2FS_MUFIT
-	case F2FS_IOC_ADD_ATOMIC_FILE:
-		return f2fs_ioc_add_atomic_file(filp, arg);
-	case F2FS_IOC_START_ATOMIC_WRITE_FILES:
-		return f2fs_ioc_start_atomic_write_files(arg);
-	case F2FS_IOC_COMMIT_ATOMIC_WRITE_FILES:
-		return f2fs_ioc_commit_atomic_write_files(arg);
-	case F2FS_IOC_END_ATOMIC_WRITE_FILES:
-		return f2fs_ioc_end_atomic_write_files(arg);
-#endif
 	case F2FS_IOC_START_VOLATILE_WRITE:
 		return f2fs_ioc_start_volatile_write(filp);
 	case F2FS_IOC_RELEASE_VOLATILE_WRITE:

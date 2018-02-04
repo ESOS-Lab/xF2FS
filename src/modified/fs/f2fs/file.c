@@ -1846,6 +1846,7 @@ static int f2fs_ioc_end_atomic_files(unsigned long arg)
 
 	list_for_each_entry_safe(current_file, temp, atomic_list, list) {
 		inode = file_inode(current_file->file);
+		//printk("[JATA DBG] ");
 		clear_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
 		kfree(current_file);
 	}

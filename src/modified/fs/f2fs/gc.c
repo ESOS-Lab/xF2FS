@@ -896,6 +896,7 @@ int f2fs_gc(struct f2fs_sb_info *sbi, bool sync)
 
 	cpc.reason = __get_cp_reason(sbi);
 gc_more:
+	printk("[JATA DBG] (%s) GC is triggered\n", __func__);
 	segno = NULL_SEGNO;
 
 	if (unlikely(!(sbi->sb->s_flags & MS_ACTIVE)))

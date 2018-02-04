@@ -24,6 +24,10 @@
 
 #define on_build_free_nids(nmi) mutex_is_locked(&nm_i->build_lock)
 
+#ifdef F2FS_MUFIT
+extern void truncate_node_atomic(struct dnode_of_data *dn);
+#endif
+
 static struct kmem_cache *nat_entry_slab;
 static struct kmem_cache *free_nid_slab;
 static struct kmem_cache *nat_entry_set_slab;
@@ -1312,301 +1316,149 @@ continue_unlock:
 }
 
 #ifdef F2FS_MUFIT
-static struct page *last_fsync_dnode(struct f2fs_sb_info *sbi, nid_t ino) 
+int sync_node_pages_atomic(struct f2fs_sb_info *sbi, nid_t ino, struct inode *inode,
+          struct writeback_control *wbc, bool last_file, struct atomic_files_header *af_header)
 {
-	pgoff_t index, end; 
-	struct pagevec pvec;
-	struct page *last_page = NULL;
+  pgoff_t index, end;
+  struct pagevec pvec;
+  int step = ino ? 2 : 0;
+  int nwritten = 0, wrote = 0;
+  //struct page *last_page = NULL;
+  bool fsynced = false;
 
-	pagevec_init(&pvec, 0);
-	index = 0; 
-	end = ULONG_MAX;
+  /*last_page = last_fsync_dnode(sbi, ino);
+  if (IS_ERR_OR_NULL(last_page)) {
+    printk(KERN_DEBUG"[JATA DEBUG] last_fsync_dnode() returned error: %p, ino: %u, last_file: %d\n", last_page, ino, last_file);
+  }*/
 
-	while (index <= end) {
-		int i, nr_pages;
-		nr_pages = pagevec_lookup_tag(&pvec, NODE_MAPPING(sbi), &index,
-				PAGECACHE_TAG_DIRTY,
-				min(end - index, (pgoff_t)PAGEVEC_SIZE-1) + 1);
-		if (nr_pages == 0)
-			break;
-
-		for (i = 0; i < nr_pages; i++) {
-			struct page *page = pvec.pages[i];
-
-			if (unlikely(f2fs_cp_error(sbi))) {
-				f2fs_put_page(last_page, 0);
-				pagevec_release(&pvec);
-				return ERR_PTR(-EIO);
-			}    
-
-			if (!IS_DNODE(page) || !is_cold_node(page))
-				continue;
-			if (ino_of_node(page) != ino) 
-				continue;
-
-			lock_page(page);
-
-			if (unlikely(page->mapping != NODE_MAPPING(sbi))) {
-continue_unlock:
-				unlock_page(page);
-				continue;
-			}    
-			if (ino_of_node(page) != ino) 
-				goto continue_unlock;
-
-			if (!PageDirty(page)) {
-				/* someone wrote it for us */
-				goto continue_unlock;
-			}
-
-			if (last_page)
-				f2fs_put_page(last_page, 0);
-
-			get_page(page);
-			last_page = page;
-			unlock_page(page);
-		}    
-		pagevec_release(&pvec);
-		cond_resched();
-	}    
-	return last_page;
-}
-
-#ifdef JATA_XXX
-int fsync_node_pages_atomic(struct f2fs_sb_info *sbi, struct inode *inode,
-		struct writeback_control *wbc, bool last_file, struct atomic_files_header *af_header)
-{
-	pgoff_t index, end;
-	struct pagevec pvec;
-	int ret = 0;
-	struct page *last_page = NULL;
-	bool marked = false;
-	nid_t ino = inode->i_ino;
-	struct node_info ni;
-	struct f2fs_nm_info *nm_i;
-	struct nat_entry *e;
-	nid_t nid;
-
-	last_page = last_fsync_dnode(sbi, ino);
-	if (IS_ERR_OR_NULL(last_page))
-		return PTR_ERR_OR_ZERO(last_page);
-retry:
-	pagevec_init(&pvec, 0);
-	index = 0;
-	end = ULONG_MAX;
-
-	while (index <= end) {
-		int i, nr_pages;
-		nr_pages = pagevec_lookup_tag(&pvec, NODE_MAPPING(sbi), &index,
-				PAGECACHE_TAG_DIRTY,
-				min(end - index, (pgoff_t)PAGEVEC_SIZE-1) + 1);
-		if (nr_pages == 0)
-			break;
-
-		for (i = 0; i < nr_pages; i++) {
-			struct page *page = pvec.pages[i];
-
-			if (unlikely(f2fs_cp_error(sbi))) {
-				f2fs_put_page(last_page, 0);
-				pagevec_release(&pvec);
-				return -EIO;
-			}
-
-			if (!IS_DNODE(page) || !is_cold_node(page))
-				continue;
-			if (ino_of_node(page) != ino)
-				continue;
-
-			lock_page(page);
-
-			if (unlikely(page->mapping != NODE_MAPPING(sbi))) {
-continue_unlock:
-				unlock_page(page);
-				continue;
-			}
-			if (ino_of_node(page) != ino)
-				goto continue_unlock;
-
-			if (!PageDirty(page) && page != last_page) {
-				/* someone wrote it for us */
-				goto continue_unlock;
-			}
-
-			f2fs_wait_on_page_writeback(page, NODE, true);
-			BUG_ON(PageWriteback(page));
-
-			if (page == last_page) {
-				// point the last node page of previous atomic written file.
-				set_prev_atmaddr(page, af_header->prev_atmaddr);
-
-				// Store current blkaddr to af_header.
-				if(last_file) {
-					set_fsync_mark(page, 1);
-				}
-				if (IS_INODE(page)) {
-					if (is_inode_flag_set(F2FS_I(inode), FI_DIRTY_INODE))
-						update_inode(inode, page);
-					set_dentry_mark(page, need_dentry_mark(sbi, ino));
-				}
-				/*  may be written by other thread */
-				if (!PageDirty(page))
-					set_page_dirty(page);
-			}
-
-			if (!clear_page_dirty_for_io(page))
-				goto continue_unlock;
-
-			ret = NODE_MAPPING(sbi)->a_ops->writepage(page, wbc);
-			if (ret) {
-				unlock_page(page);
-				f2fs_put_page(last_page, 0);
-				break;
-			}
-			if (page == last_page) {
-				if (last_file) {
-					af_header->prev_atmaddr = cpu_to_le32(0);
-				} else {
-					nid = nid_of_node(page);
-					nm_i = NM_I(sbi);
-					e = __lookup_nat_cache(nm_i, nid);
-					get_node_info(sbi, nid, &ni);
-					if (ni.nid == ni.ino)
-						set_nat_flag(e, HAS_FSYNCED_INODE, true);
-					set_nat_flag(e, HAS_LAST_FSYNC, true);
-					af_header->prev_atmaddr = cpu_to_le32(ni.blk_addr);
-				}
-
-				f2fs_put_page(page, 0);
-				marked = true;
-				break;
-			}
-		}
-		pagevec_release(&pvec);
-		cond_resched();
-
-		if (ret || marked)
-			break;
-	}
-	if (!ret && last_file && !marked) {
-		f2fs_msg(sbi->sb, KERN_DEBUG,
-			"Retry to write fsync mark: ino=%u, idx=%lx",
-			ino, last_page->index);
-		lock_page(last_page);
-		set_page_dirty(last_page);
-		unlock_page(last_page);
-		goto retry;
-	}
-	return ret ? -EIO: 0;
-}
-#endif
-
-/*int sync_node_pages_atomic(struct f2fs_sb_info *sbi, nid_t ino, struct writeback_control *wbc,
-						bool last_file, struct atomic_files_header *af_header)
-{
-	pgoff_t index, end;
-	struct pagevec pvec;
-	int step = ino ? 2 : 0;
-	int nwritten = 0;
-	bool marked = false;
-	struct page *last_page = NULL;
-
-	if (atomic) {
-		last_page = last_fsync_dnode(sbi, ino);
-		if (IS_ERR_OR_NULL(last_page))
-			return PTR_ERR_OR_ZERO(last_page);
-	}
-
-	pagevec_init(&pvec, 0);
+  pagevec_init(&pvec, 0);
 
 next_step:
-	index = 0;
-	end = ULONG_MAX;
+  index = 0;
+  end = LONG_MAX;
 
-	while (index <= end) {
-		int i, nr_pages;
-		nr_pages = pagevec_lookup_tag(&pvec, NODE_MAPPING(sbi), &index,
-				PAGECACHE_TAG_DIRTY,
-				min(end - index, (pgoff_t)PAGEVEC_SIZE-1) + 1);
-		if (nr_pages == 0)
-			break;
+  while (index <= end) {
+    int i, nr_pages;
+    nr_pages = pagevec_lookup_tag(&pvec, NODE_MAPPING(sbi), &index,
+        PAGECACHE_TAG_DIRTY,
+        min(end - index, (pgoff_t)PAGEVEC_SIZE-1) + 1);
+    if (nr_pages == 0)
+      break;
 
-		for (i = 0; i < nr_pages; i++) {
-			struct page *page = pvec.pages[i];
+    for (i = 0; i < nr_pages; i++) {
+      struct page *page = pvec.pages[i];
 
-			if (unlikely(f2fs_cp_error(sbi))) {
-				f2fs_put_page(last_page, 0);
-				pagevec_release(&pvec);
-				return -EIO;
-			}
+      /*
+       * flushing sequence with step:
+       * 0. indirect nodes
+       * 1. dentry dnodes
+       * 2. file dnodes
+       */
+      if (step == 0 && IS_DNODE(page))
+        continue;
+      if (step == 1 && (!IS_DNODE(page) ||
+            is_cold_node(page)))
+        continue;
+      if (step == 2 && ((!IS_DNODE(page) ||
+            !is_cold_node(page)) && !IS_MUFIT_NODE(page)))
+        continue;
 
-			if (step == 0 && IS_DNODE(page))
-				continue;
-			if (step == 1 && (!IS_DNODE(page) ||
-						is_cold_node(page)))
-				continue;
-			if (step == 2 && (!IS_DNODE(page) ||
-						!is_cold_node(page)))
-				continue;
+      /*
+       * If an fsync mode,
+       * we should not skip writing node pages.
+       */
+      if (ino && ino_of_node(page) == ino)
+        lock_page(page);
+      else if (!trylock_page(page))
+        continue;
 
-lock_node:
-			if (ino && ino_of_node(page) == ino)
-				lock_page(page);
-			else if (!trylock_page(page))
-				continue;
-
-			if (unlikely(page->mapping != NODE_MAPPING(sbi))) {
+      if (unlikely(page->mapping != NODE_MAPPING(sbi))) {
 continue_unlock:
-				unlock_page(page);
-				continue;
-			}
-			if (ino && ino_of_node(page) != ino)
-				goto continue_unlock;
+        unlock_page(page);
+        continue;
+      }
+      if (ino && ino_of_node(page) != ino)
+        goto continue_unlock;
 
-			if (!PageDirty(page)) {
-				goto continue_unlock;
-			}
+      if (!PageDirty(page)) {
+        /* someone wrote it for us */
+        goto continue_unlock;
+      }
 
-			f2fs_wait_on_page_writeback(page, NODE, true);
+      if (!clear_page_dirty_for_io(page))
+        goto continue_unlock;
 
-			BUG_ON(PageWriteback(page));
+      if (NODE_MAPPING(sbi)->a_ops->writepage(page, wbc))
+        unlock_page(page);
+      else
+        wrote++;
 
-			if (!atomic || page == last_page) {
-				set_fsync_mark(page, 1);
-				if (IS_INODE(page)) {
-					if (is_inode_flag_set(inode, FI_DIRTY_INODE))
-						update_inode(inode, page);
-					set_dentry_mark(page,
-						need_dentry_mark(sbi, ino));
-				}
-				if (!PageDirty(page))
-					set_page_dirty(page);
-			}
+      if (--wbc->nr_to_write == 0)
+        break;
+    }
+    pagevec_release(&pvec);
+    cond_resched();
 
-			if (!clear_page_dirty_for_io(page))
-				goto continue_unlock;
+    if (wbc->nr_to_write == 0) {
+      step = 2;
+      break;
+    }
+  }
+  if (!fsynced) {
+    nid_t nid;
+    struct node_info ni;
+    struct page *page, *ipage;
 
-			if (NODE_MAPPING(sbi)->a_ops->writepage(page, wbc)) {
-				unlock_page(page);
-			}
+    ipage = get_node_page(sbi, ino);
 
-			if (--wbc->nr_to_write == 0)
-				break;
-		}
-		pagevec_release(&pvec);
-		cond_resched();
+    get_node_info(sbi, ino, &ni);
+    af_header->mn.atm_addrs[af_header->mn.count_valid_addr++] = cpu_to_le32(ni.blk_addr);
 
-		if (wbc->nr_to_write == 0) {
-			step = 2;
-			break;
-		}
-	}
+    if (last_file) {
+      struct dnode_of_data dn;
+      bool is_nid_alloced = af_header->master_nid;
 
-	if (step < 2) {
-		step++;
-		goto next_step;
-	}
-	return nwritten;
-}*/
+      if (!is_nid_alloced) {
+        if (!alloc_nid(sbi, &(af_header->master_nid)))
+          return -ENOSPC;
+
+
+        set_new_dnode(&dn, inode, NULL, NULL, af_header->master_nid);
+        page = new_node_page(&dn, MUFIT_NODE_OFFSET, ipage);
+        if (IS_ERR(page)) {
+          alloc_nid_failed(sbi, af_header->master_nid);
+          af_header->master_nid = 0;
+          return PTR_ERR(page);
+        }
+        alloc_nid_done(sbi, af_header->master_nid);
+      }  else {
+        page = get_node_page(sbi, af_header->master_nid);
+        if (IS_ERR(page)) {
+          alloc_nid_failed(sbi, af_header->master_nid);
+          af_header->master_nid = 0;
+          return PTR_ERR(page);
+        }
+      }
+
+      memcpy(page_address(page), &af_header->mn, sizeof(struct mufit_node));
+      set_fsync_mark(page, 1);
+      set_page_dirty(page);
+      f2fs_put_page(page, 1);
+
+      step = 1;
+    }
+    fsynced = true;
+    f2fs_put_page(ipage, 1);
+  }
+
+  if (step < 2) {
+    step++;
+    goto next_step;
+  }
+  if (wrote)
+    f2fs_submit_merged_bio(sbi, NODE, WRITE);
+  return nwritten;
+}
 #endif
 
 int wait_on_node_pages_writeback(struct f2fs_sb_info *sbi, nid_t ino)
@@ -2513,3 +2365,10 @@ void destroy_node_manager_caches(void)
 	kmem_cache_destroy(free_nid_slab);
 	kmem_cache_destroy(nat_entry_slab);
 }
+
+#ifdef F2FS_MUFIT
+void truncate_node_atomic(struct dnode_of_data *dn)
+{
+  truncate_node(dn);
+}
+#endif

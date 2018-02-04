@@ -339,6 +339,15 @@ static inline bool IS_DNODE(struct page *node_page)
 	return true;
 }
 
+#ifdef F2FS_MUFIT
+static inline bool IS_MUFIT_NODE(struct page *node_page)
+{
+	  unsigned int ofs = ofs_of_node(node_page);
+
+	    return ofs == MUFIT_NODE_OFFSET;
+}
+#endif
+
 static inline int set_nid(struct page *p, int off, nid_t nid, bool i)
 {
 	struct f2fs_node *rn = F2FS_NODE(p);
@@ -419,3 +428,7 @@ static inline void set_mark(struct page *page, int mark, int type)
 }
 #define set_dentry_mark(page, mark)	set_mark(page, mark, DENT_BIT_SHIFT)
 #define set_fsync_mark(page, mark)	set_mark(page, mark, FSYNC_BIT_SHIFT)
+
+#ifdef F2FS_MUFIT
+extern void truncate_node_atomic(struct dnode_of_data *dn);
+#endif
