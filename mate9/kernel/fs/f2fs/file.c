@@ -305,110 +305,112 @@ out:
 #ifdef F2FS_MUFIT
 int f2fs_sync_files(struct file *file, loff_t start, loff_t end, int datasync, bool last_file, struct atomic_files_header *af_header)
 {
-  struct inode *inode = file->f_mapping->host;
-  struct f2fs_inode_info *fi = F2FS_I(inode);
-  struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
-  nid_t ino = inode->i_ino;
-  int ret = 0;
-  bool need_cp = false;
-  struct writeback_control wbc = {
-    .sync_mode = WB_SYNC_ALL,
-    .nr_to_write = LONG_MAX,
-    .for_reclaim = 0,
-  };
+	struct inode *inode = file->f_mapping->host;
+	struct f2fs_inode_info *fi = F2FS_I(inode);
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	nid_t ino = inode->i_ino;
+	int ret = 0;
+	bool need_cp = false;
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_ALL,
+		.nr_to_write = LONG_MAX,
+		.for_reclaim = 0,
+	};
 
-  if (unlikely(f2fs_readonly(inode->i_sb)))
-    return 0;
+	if (unlikely(f2fs_readonly(inode->i_sb)))
+		return 0;
 
-  trace_f2fs_sync_file_enter(inode);
+	trace_f2fs_sync_file_enter(inode);
 
-  /* if fdatasync is triggered, let's do in-place-update */
-  if (get_dirty_pages(inode) <= SM_I(sbi)->min_fsync_blocks)
-    set_inode_flag(fi, FI_NEED_IPU);
-  ret = filemap_write_and_wait_range(inode->i_mapping, start, end);
-  clear_inode_flag(fi, FI_NEED_IPU);
+	/* if fdatasync is triggered, let's do in-place-update */
+	if (datasync || get_dirty_pages(inode) <= SM_I(sbi)->min_fsync_blocks)
+		set_inode_flag(fi, FI_NEED_IPU);
+	ret = filemap_write_and_wait_range(inode->i_mapping, start, end);
+	clear_inode_flag(fi, FI_NEED_IPU);
 
-  if (ret) {
-    trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
-    return ret;
-  }
+	if (ret) {
+		trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
+		return ret;
+	}
 
-  /* if the inode is dirty, let's recover all the time */
-  if (!datasync && is_inode_flag_set(fi, FI_DIRTY_INODE)) {
-    update_inode_page(inode);
-    goto go_write;
-  }
+	inode_lock(inode);
 
-  /*
-   * if there is no written data, don't waste time to write recovery info.
-   */
-  if (!is_inode_flag_set(fi, FI_APPEND_WRITE) &&
-      !exist_written_data(sbi, ino, APPEND_INO)) {
+	/* if the inode is dirty, let's recover all the time */
+	if (!datasync || is_inode_flag_set(fi, FI_ISIZE_CHANGED)) {
+		f2fs_write_inode(inode, NULL);
+		goto go_write;
+	}
 
-    /* it may call write_inode just prior to fsync */
-    if (need_inode_page_update(sbi, ino))
-      goto go_write;
+	/*
+	 * if there is no written data, don't waste time to write recovery info.
+	 */
+	/*lint -save -e527*/
+	if (!is_inode_flag_set(fi, FI_APPEND_WRITE) &&
+			!exist_written_data(sbi, ino, APPEND_INO)) {
 
-    if (is_inode_flag_set(fi, FI_UPDATE_WRITE) ||
-        exist_written_data(sbi, ino, UPDATE_INO))
-      goto flush_out;
-    goto out;
-  }
+		/* it may call write_inode just prior to fsync */
+		if (need_inode_page_update(sbi, ino))
+			goto go_write;
+
+		if (is_inode_flag_set(fi, FI_UPDATE_WRITE) ||
+				exist_written_data(sbi, ino, UPDATE_INO))
+			goto flush_out;
+		goto out;
+	}
+	/*lint -restore*/
 go_write:
-  /* guarantee free sections for fsync */
-  f2fs_balance_fs(sbi);
+	/*
+	 * Both of fdatasync() and fsync() are able to be recovered from
+	 * sudden-power-off.
+	 */
+	down_read(&fi->i_sem);
+	need_cp = need_do_checkpoint(inode);
+	up_read(&fi->i_sem);
 
-  /*
-   * Both of fdatasync() and fsync() are able to be recovered from
-   * sudden-power-off.
-   */
-  down_read(&fi->i_sem);
-  need_cp = need_do_checkpoint(inode);
-  up_read(&fi->i_sem);
+	if (need_cp) {
+		/* all the dirty node pages should be flushed for POR */
+		ret = f2fs_sync_fs(inode->i_sb, 1);
 
-  if (need_cp) {
-    /* all the dirty node pages should be flushed for POR */
-    ret = f2fs_sync_fs(inode->i_sb, 1);
-
-    /*
-     * We've secured consistency through sync_fs. Following pino
-     * will be used only for fsynced inodes after checkpoint.
-     */
-    try_to_fix_pino(inode);
-    clear_inode_flag(fi, FI_APPEND_WRITE);
-    clear_inode_flag(fi, FI_UPDATE_WRITE);
-    goto out;
-  }
+		/*
+		 * We've secured consistency through sync_fs. Following pino
+		 * will be used only for fsynced inodes after checkpoint.
+		 */
+		try_to_fix_pino(inode);
+		clear_inode_flag(fi, FI_APPEND_WRITE);
+		clear_inode_flag(fi, FI_UPDATE_WRITE);
+		goto out;
+	}
 sync_nodes:
-  sync_node_pages_atomic(sbi, ino, inode, &wbc, last_file, af_header);
+	sync_node_pages_atomic(sbi, ino, inode, &wbc, last_file, af_header);
 
-  /* if cp_error was enabled, we should avoid infinite loop */
-  if (unlikely(f2fs_cp_error(sbi)))
-    goto out;
+	/* if cp_error was enabled, we should avoid infinite loop */
+	if (unlikely(f2fs_cp_error(sbi))) {
+		ret = -EIO;
+		goto out;
+	}
 
-  /*if (need_inode_block_update(sbi, ino) && last_file) {
-    mark_inode_dirty_sync(inode);
-    f2fs_write_inode(inode, NULL);
-    goto sync_nodes;
-  }*/
+	ret = wait_on_node_pages_writeback(sbi, ino);
+	if (ret)
+		goto out;
 
-  ret = wait_on_node_pages_writeback(sbi, ino);
-  if (ret)
-    goto out;
+	/* once recovery info is written, don't need to tack this */
+	remove_ino_entry(sbi, ino, APPEND_INO);
+	clear_inode_flag(fi, FI_APPEND_WRITE);
 
-  /* once recovery info is written, don't need to tack this */
-  remove_dirty_inode(sbi, ino, APPEND_INO);
-  clear_inode_flag(fi, FI_APPEND_WRITE);
+	clear_inode_flag(fi, FI_ISIZE_CHANGED);
 flush_out:
-  remove_dirty_inode(sbi, ino, UPDATE_INO);
-  clear_inode_flag(fi, FI_UPDATE_WRITE);
-  if (last_file)
-    ret = f2fs_issue_flush(sbi);
+	remove_ino_entry(sbi, ino, UPDATE_INO);
+	clear_inode_flag(fi, FI_UPDATE_WRITE);
+	if (last_file)
+		ret = f2fs_issue_flush(sbi);
+	f2fs_update_time(sbi, REQ_TIME);
 out:
-  trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
-  f2fs_trace_ios(NULL, NULL, 1);
-  return ret;
+	inode_unlock(inode);
+	trace_f2fs_sync_file_exit(inode, need_cp, datasync, ret);
+	f2fs_trace_ios(NULL, 1);
+	return ret;
 }
+
 #endif
 
 static pgoff_t __get_first_dirty_index(struct address_space *mapping,
@@ -1653,7 +1655,7 @@ static int f2fs_ioc_commit_atomic_files(unsigned long arg)
 
     if (f2fs_is_atomic_file(inode)) {
       clear_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
-      commit_inmem_pages(inode, false);
+      ret = commit_inmem_pages(inode);
       if (ret) {
         set_inode_flag(F2FS_I(inode), FI_ATOMIC_FILE);
 goto err_out;
