@@ -1,0 +1,233 @@
+diff -urN modified/fs/f2fs/f2fs.h original/fs/f2fs/f2fs.h
+--- modified/fs/f2fs/f2fs.h	2018-07-24 14:45:59.013418315 +0900
++++ original/fs/f2fs/f2fs.h	2018-07-26 16:51:20.184079949 +0900
+@@ -381,10 +381,6 @@
+ #define F2FS_IOC_SET_PIN_FILE		_IOW(F2FS_IOCTL_MAGIC, 13, __u32)
+ #define F2FS_IOC_GET_PIN_FILE		_IOR(F2FS_IOCTL_MAGIC, 14, __u32)
+ #define F2FS_IOC_PRECACHE_EXTENTS	_IO(F2FS_IOCTL_MAGIC, 15)
+-#define F2FS_IOC_ADD_ATOMIC_FILE	_IO(F2FS_IOCTL_MAGIC, 16)
+-#define F2FS_IOC_START_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 17)
+-#define F2FS_IOC_COMMIT_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 18)
+-#define F2FS_IOC_END_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 19)
+ 
+ #define F2FS_IOC_SET_ENCRYPTION_POLICY	FS_IOC_SET_ENCRYPTION_POLICY
+ #define F2FS_IOC_GET_ENCRYPTION_POLICY	FS_IOC_GET_ENCRYPTION_POLICY
+@@ -677,29 +673,6 @@
+ 	struct timespec i_disk_time[4];	/* inode disk times */
+ };
+ 
+-/*
+- * This is for Multi File Transactional Write (MUFIT).
+- * 
+- * - MUFIT_NODE: Offset of mufit node block. It is similar to XATTR_NODE_OFFSET.
+- * - struct atomic_file_set: It represent a atomic file set.
+- * - struct atomic_file: It is pair of list_head and file. The purpose of this structure 
+- *                       is listing of files to atomic file set.
+- *
+- * - Joontaek Oh.
+- */
+-#define MASTER_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
+-
+-struct atomic_file_set {
+-	struct list_head af_list;	/* atomic file list */
+-	nid_t master_nid;		/* nid of mufit node */
+-	struct mufit_node mn;		/* data of mufit node */
+-};
+-
+-struct atomic_file {
+-	struct list_head list;
+-	struct file *file;
+-};
+-
+ static inline void get_extent_info(struct extent_info *ext,
+ 					struct f2fs_extent *i_ext)
+ {
+@@ -2286,7 +2259,6 @@
+ 	FI_PROJ_INHERIT,	/* indicate file inherits projectid */
+ 	FI_PIN_FILE,		/* indicate file should not be gced */
+ 	FI_ATOMIC_REVOKE_REQUEST, /* request to drop atomic data */
+-	FI_ADDED_ATOMIC_FILE,	/* indicate file is in atomic file set */
+ };
+ 
+ static inline void __mark_inode_dirty_flag(struct inode *inode,
+@@ -2494,11 +2466,6 @@
+ 	return is_inode_flag_set(inode, FI_ATOMIC_FILE);
+ }
+ 
+-static inline bool f2fs_is_added_file(struct inode *inode)
+-{
+-	return is_inode_flag_set(inode, FI_ADDED_ATOMIC_FILE);
+-}
+-
+ static inline bool f2fs_is_commit_atomic_write(struct inode *inode)
+ {
+ 	return is_inode_flag_set(inode, FI_ATOMIC_COMMIT);
+diff -urN modified/fs/f2fs/file.c original/fs/f2fs/file.c
+--- modified/fs/f2fs/file.c	2018-07-24 14:45:59.013418315 +0900
++++ original/fs/f2fs/file.c	2018-07-26 16:51:20.184079949 +0900
+@@ -2851,111 +2851,6 @@
+ 	return f2fs_precache_extents(file_inode(filp));
+ }
+ 
+-/*
+- * This function is called when F2FS_IOC_ADD_ATOMIC_FILE command is called.
+- * It add file to atomic file set. Arguments *filp* and *arg* are file pointer
+- * and atomic file set key repectively. When this function is called,
+- * the file that is represented by *filp* is added to atomic file set that
+- * is represented by *arg*.
+- *
+- * If *arg* is NULL, it means there are no atomic file set that is already
+- * created. In this case, it create new atomic file set and add *filp* to
+- * new atomic file set. Because *arg* is double pointer to variable of user,
+- * user can get the address of atomic file set. The address of atomic file set
+- * is called key for atomic file set.
+- *
+- * - Joontaek Oh.
+- */
+-static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
+-{
+-	struct inode *inode = file->f_mapping->host;
+-	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+-	struct atomic_file_set *afs;
+-	struct atomic_file *af;
+-
+-	afs = *(struct atomic_file_set**)arg;
+-
+-	if (!afs) {
+-		/* lock? */
+-		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
+-		if (!afs)
+-			return -ENOMEM;
+-		INIT_LIST_HEAD(&(afs->af_list));
+-		afs->master_nid = 0;
+-	}
+-
+-	af = f2fs_kzalloc(sbi, sizeof(struct atomic_file), GFP_KERNEL);
+-	/* afs release? */
+-	if (!af)
+-		return -ENOMEM;
+-	af->file = filp;
+-	list_add(&(af->list), &(afs->af_list));
+-
+-	return 0;
+-}
+-
+-/*
+- * This function is called when F2FS_IOC_START_ATOMIC_FILE_SET command is
+- * called. It set each file in atomic file set to atomic file. Atomic file
+- * is special file. When atomic file is changed, it makes not dirty page
+- * but inmem page. So atomic files do not have dirty pages. So it is not
+- * flushed to disk by pdflush. The *filp* is not used in this funciton.
+- *
+- * - Joontaek Oh.
+- */
+-static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
+-{
+-	struct atomic_file_set *afs;
+-	struct atomic_file *af_elem;
+-	struct list_head *head;
+-
+-	afs = *(struct atomic_file_set**)arg;
+-	head = &(afs->af_list);
+-
+-	list_for_each_entry(af_elem, head, list) {
+-		f2fs_ioc_start_atomic_write(filp);
+-	}
+-
+-	return 0;
+-}
+-
+-/*
+- * This function is called when F2FS_IOC_COMMIT_ATOMIC_FILE_SET command is
+- * called. It flush all files in atomic file set. The detail steps to flush
+- * all files in atomic file set is below.
+- *
+- * 1. Change all files in atomic file set to normal file from atomic file.
+- * 2. Flush all files in atomic file set in order.
+- * 3. Save the last node block address of each files in atomic file set to
+- *    mufit_node data in atomic_file_set structure.
+- * 4. When it flush last file in atomic file set, it allocate the new node
+- *    block, master node block. And save its node id to atomic_fiole_set
+- *    structure. If master node is already allocated, it use it. If master
+- *    node id in atomic_file_set structure have 0, it means master node is
+- *    unallocated yet. It is alright because the 0 of node id already
+- *    allocated to metadata.
+- *
+- * - Joontaek Oh.
+- */
+-static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
+-{
+-	/* Should do*/
+-	return 0;
+-}
+-
+-/*
+- * This function is called when F2FS_IOC_END_ATOMIC_FILE_SET command is
+- * called. It deallocate the atomic file set including atomic_file_set
+- * structure, atomic_file structure and master node.
+- *
+- * - Joontaek Oh.
+- */
+-static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
+-{
+-	/* Should do */
+-	return 0;
+-}
+-
+ long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
+ 	if (unlikely(f2fs_cp_error(F2FS_I_SB(file_inode(filp)))))
+@@ -3012,14 +2907,6 @@
+ 		return f2fs_ioc_set_pin_file(filp, arg);
+ 	case F2FS_IOC_PRECACHE_EXTENTS:
+ 		return f2fs_ioc_precache_extents(filp, arg);
+-	case F2FS_IOC_ADD_ATOMIC_FILE:
+-		return f2fs_ioc_add_atomic_file(filp, arg);
+-	case F2FS_IOC_START_ATOMIC_FILE_SET:
+-		return f2fs_ioc_start_atomic_file_set(filp, arg);
+-	case F2FS_IOC_COMMIT_ATOMIC_FILE_SET:
+-		return f2fs_ioc_commit_atomic_file_set(filp, arg);
+-	case F2FS_IOC_END_ATOMIC_FILE_SET:
+-		return f2fs_ioc_end_atomic_file_set(filp, arg);
+ 	default:
+ 		return -ENOTTY;
+ 	}
+diff -urN modified/include/linux/f2fs_fs.h original/include/linux/f2fs_fs.h
+--- modified/include/linux/f2fs_fs.h	2018-07-24 14:45:59.013418315 +0900
++++ original/include/linux/f2fs_fs.h	2018-07-26 16:48:21.240085247 +0900
+@@ -200,8 +200,6 @@
+ #define ADDRS_PER_BLOCK		1018	/* Address Pointers in a Direct Block */
+ #define NIDS_PER_BLOCK		1018	/* Node IDs in an Indirect Block */
+ 
+-#defien ADDRS_PER_MASTER_NODE	(ADDRS_PER_BLOCK - 1)	/* Address Pointers in a master node block */
+-
+ #define ADDRS_PER_PAGE(page, inode)	\
+ 	(IS_INODE(page) ? ADDRS_PER_INODE(inode) : ADDRS_PER_BLOCK)
+ 
+@@ -275,18 +273,6 @@
+ 	__le32 nid[NIDS_PER_BLOCK];	/* array of data block address */
+ } __packed;
+ 
+-/*
+- * Node block for Multi file transactional write (MUFIT).
+- * It have pointers to last node blocks in a atomic file set.
+- * It belong to last file in atomic file set.
+- *
+- * - Joontaek Oh.
+- */
+-struct master_node {
+-	__le32 count_valid_addr;
+-	__le32 atm_addrs[ADDRS_PER_MASTER_NODE];
+-} __packed;
+-
+ enum {
+ 	COLD_BIT_SHIFT = 0,
+ 	FSYNC_BIT_SHIFT,
+@@ -310,7 +296,6 @@
+ 		struct f2fs_inode i;
+ 		struct direct_node dn;
+ 		struct indirect_node in;
+-		struct master_node mn;
+ 	};
+ 	struct node_footer footer;
+ } __packed;
