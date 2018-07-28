@@ -690,7 +690,8 @@ struct f2fs_inode_info {
 #define MASTER_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
 
 struct atomic_file_set {
-	struct list_head af_list;	/* atomic file list */
+	struct list_head afs_list;	/* atomic file list */
+	struct rw_semaphore afs_rwsem;	/* semaphore for afs */
 	nid_t master_nid;		/* nid of mufit node */
 	struct mufit_node mn;		/* data of mufit node */
 };

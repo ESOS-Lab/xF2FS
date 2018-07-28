@@ -2870,26 +2870,42 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 {
 	struct inode *inode = file->f_mapping->host;
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
-	struct atomic_file_set *afs;
+	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
 	struct atomic_file *af;
+	bool allocated = false;
 
-	afs = *(struct atomic_file_set**)arg;
-
+	/*
+	 * If the value that beging pointed by *arg* is NULL, we should allocate
+	 * new atomic file set.
+	 */
 	if (!afs) {
-		/* lock? */
 		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
 		if (!afs)
 			return -ENOMEM;
-		INIT_LIST_HEAD(&(afs->af_list));
+		INIT_LIST_HEAD(&afs->afs_list);
+		init_rwsem(&afs->afs_rwsem);
 		afs->master_nid = 0;
+		allocated = true;
 	}
 
 	af = f2fs_kzalloc(sbi, sizeof(struct atomic_file), GFP_KERNEL);
-	/* afs release? */
-	if (!af)
+
+	/* 
+	 * If afs has just been created, afs_list must be empty.
+	 * A empty afs_list have no way to be released, so there are
+	 * must no empty atomic file set having empty afs_list.
+	 * If this situation is occured, a empty afs should be
+	 * released.
+	 */
+	if (!af) {
+		if (allocated)
+			kfree(afs);
 		return -ENOMEM;
+	}
 	af->file = filp;
+	down_write(&afs->afs_rwsem);
 	list_add(&(af->list), &(afs->af_list));
+	up_write(&afs->afs_rwsem);
 
 	return 0;
 }
@@ -2905,16 +2921,20 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 {
-	struct atomic_file_set *afs;
-	struct atomic_file *af_elem;
-	struct list_head *head;
+	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct atomic_file *af_elem, tmp;
+	struct list_head *head = &afs->af_list;
 
-	afs = *(struct atomic_file_set**)arg;
-	head = &(afs->af_list);
+	if (!afs)
+		return -ENOENT;
 
-	list_for_each_entry(af_elem, head, list) {
+	down_write(&afs->afs_rwsem);
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		/* Is there no any error? */
+		filp = af_elem->file;
 		f2fs_ioc_start_atomic_write(filp);
 	}
+	up_write(&afs->afs_rwsem);
 
 	return 0;
 }
@@ -2939,7 +2959,21 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 {
-	/* Should do*/
+	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct atomic_file *af_elem, tmp;
+	struct list_head *head = &afs->af_list;
+
+	if (!afs)
+		return -ENOENT;
+
+	down_write(&afs->afs_rwsem);
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		/* Is there no any error? */
+		filp = af_elem->file;
+		f2fs_ioc_commit_atomic_write(filp);
+	}
+	up_write(&afs->afs_rwsem);
+
 	return 0;
 }
 
@@ -2952,7 +2986,26 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 {
-	/* Should do */
+	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct atomic_file *af_elem, tmp;
+	struct list_head *head = &afs->af_list;
+
+	if (!afs)
+		return -ENOENT;
+
+	down_write(&afs->afs_rwsem);
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		/* Is there no any process to do when release atomic_file? */
+		list_del(af_elem);
+		kfree(af_elem);
+	}
+	
+	/* If it have master node, it should be released in here. */
+
+	up_write(&afs->afs_rwsem);
+
+	kfree(afs);
+
 	return 0;
 }
 
