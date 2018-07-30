@@ -2864,18 +2864,32 @@ static int f2fs_ioc_precache_extents(struct file *filp, unsigned long arg)
  * user can get the address of atomic file set. The address of atomic file set
  * is called key for atomic file set.
  *
+ * We determined that f2fs_ioc_del_atomic_file () must be not implemented.
+ * It might generate empty atomic file set, and it could not be supervised
+ * because there is no object pointing that. 
+ * There is way to supervise all of atomic file set including empty one.
+ * However, it needs modification another kernel module like task_struct.
+ * We do not want modify kernel module but f2fs module.
+ *
  * - Joontaek Oh.
  */
 static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 {
-	struct inode *inode = file->f_mapping->host;
-	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
-	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct inode *inode;
+	struct f2fs_sb_info *sbi;
+	struct atomic_file_set *afs;
 	struct atomic_file *af;
 	bool allocated = false;
 
+	if (!file || !arg)
+		return -ENOMEM;
+
+	inode = file->f_mapping->host;
+	sbi = F2FS_I_SB(inode);
+	afs = *(struct atomic_file_set**)arg;
+
 	/*
-	 * If the value that beging pointed by *arg* is NULL, we should allocate
+	 * If the value that being pointed by *arg* is NULL, we should allocate
 	 * new atomic file set.
 	 */
 	if (!afs) {
@@ -2921,22 +2935,210 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 {
-	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct atomic_file_set *afs;
 	struct atomic_file *af_elem, tmp;
 	struct list_head *head = &afs->af_list;
+
+	if (!arg)
+		return -ENOENT;
+
+	afs = *(struct atomic_file_set**)arg;
 
 	if (!afs)
 		return -ENOENT;
 
 	down_write(&afs->afs_rwsem);
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
-		/* Is there no any error? */
+		/* 
+		 * Is there no any error? 
+		 * If af_elem is NULL? Huh?
+		 */
 		filp = af_elem->file;
 		f2fs_ioc_start_atomic_write(filp);
 	}
 	up_write(&afs->afs_rwsem);
 
 	return 0;
+}
+
+/*
+ *
+ *
+ * - Joontaek Oh.
+ */
+static int __f2fs_ioc_commit_atomic_file_set_iter(struct file *file, bool atomic, bool last_file)
+{
+	struct inode *inode = file->f_mapping->host;
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	nid_t ino = inode->i_ino;
+	int ret = 0;
+	enum cp_reason_type cp_reason = 0;
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_ALL,
+		.nr_to_write = LONG_MAX,
+		.for_reclaim = 0,
+	};
+
+	if (unlikely(f2fs_readonly(inode->i_sb)))
+		return 0;
+
+	trace_f2fs_sync_file_enter(inode);
+
+	/* if fdatasync is triggered, let's do in-place-update */
+	if (datasync || get_dirty_pages(inode) <= SM_I(sbi)->min_fsync_blocks)
+		set_inode_flag(inode, FI_NEED_IPU);
+	ret = file_write_and_wait_range(file, 0, LLONG_MAX);
+	clear_inode_flag(inode, FI_NEED_IPU);
+
+	if (ret) {
+		trace_f2fs_sync_file_exit(inode, cp_reason, datasync, ret);
+		return ret;
+	}
+
+	/* if the inode is dirty, let's recover all the time */
+	if (!f2fs_skip_inode_update(inode, datasync)) {
+		f2fs_write_inode(inode, NULL);
+		goto go_write;
+	}
+
+	/*
+	 * if there is no written data, don't waste time to write recovery info.
+	 */
+	if (!is_inode_flag_set(inode, FI_APPEND_WRITE) &&
+			!f2fs_exist_written_data(sbi, ino, APPEND_INO)) {
+
+		/* it may call write_inode just prior to fsync */
+		if (need_inode_page_update(sbi, ino))
+			goto go_write;
+
+		if (is_inode_flag_set(inode, FI_UPDATE_WRITE) ||
+				f2fs_exist_written_data(sbi, ino, UPDATE_INO))
+			goto flush_out;
+		goto out;
+	}
+go_write:
+	/*
+	 * Both of fdatasync() and fsync() are able to be recovered from
+	 * sudden-power-off.
+	 */
+	down_read(&F2FS_I(inode)->i_sem);
+	cp_reason = need_do_checkpoint(inode);
+	up_read(&F2FS_I(inode)->i_sem);
+
+	if (cp_reason) {
+		/* all the dirty node pages should be flushed for POR */
+		ret = f2fs_sync_fs(inode->i_sb, 1);
+
+		/*
+		 * We've secured consistency through sync_fs. Following pino
+		 * will be used only for fsynced inodes after checkpoint.
+		 */
+		try_to_fix_pino(inode);
+		clear_inode_flag(inode, FI_APPEND_WRITE);
+		clear_inode_flag(inode, FI_UPDATE_WRITE);
+		goto out;
+	}
+sync_nodes:
+	atomic_inc(&sbi->wb_sync_req[NODE]);
+	ret = f2fs_fsync_node_pages(sbi, inode, &wbc, atomic);
+	atomic_dec(&sbi->wb_sync_req[NODE]);
+	if (ret)
+		goto out;
+
+	/* if cp_error was enabled, we should avoid infinite loop */
+	if (unlikely(f2fs_cp_error(sbi))) {
+		ret = -EIO;
+		goto out;
+	}
+
+	if (f2fs_need_inode_block_update(sbi, ino)) {
+		f2fs_mark_inode_dirty_sync(inode, true);
+		f2fs_write_inode(inode, NULL);
+		goto sync_nodes;
+	}
+
+	/*
+	 * If it's atomic_write, it's just fine to keep write ordering. So
+	 * here we don't need to wait for node write completion, since we use
+	 * node chain which serializes node blocks. If one of node writes are
+	 * reordered, we can see simply broken chain, resulting in stopping
+	 * roll-forward recovery. It means we'll recover all or none node blocks
+	 * given fsync mark.
+	 */
+	if (!atomic) {
+		ret = f2fs_wait_on_node_pages_writeback(sbi, ino);
+		if (ret)
+			goto out;
+	}
+
+	/* once recovery info is written, don't need to tack this */
+	f2fs_remove_ino_entry(sbi, ino, APPEND_INO);
+	clear_inode_flag(inode, FI_APPEND_WRITE);
+flush_out:
+	if (!atomic && F2FS_OPTION(sbi).fsync_mode != FSYNC_MODE_NOBARRIER)
+		ret = f2fs_issue_flush(sbi, inode->i_ino);
+	if (!ret) {
+		f2fs_remove_ino_entry(sbi, ino, UPDATE_INO);
+		clear_inode_flag(inode, FI_UPDATE_WRITE);
+		f2fs_remove_ino_entry(sbi, ino, FLUSH_INO);
+	}
+	f2fs_update_time(sbi, REQ_TIME);
+out:
+	trace_f2fs_sync_file_exit(inode, cp_reason, datasync, ret);
+	f2fs_trace_ios(NULL, 1);
+	return ret;
+}
+
+/*
+ * This function is only called in f2fs_ioc_commit_atomic_file_set.
+ * It is similar with f2fs_ioc_commit_atomic_write (), but it
+ * have one more argument, *last_file*. We can distinguish 
+ * whether the file from argument is last or not.
+ *
+ * - Joontaek Oh.
+ */
+static int __f2fs_ioc_commit_atomic_file_set(struct file *filp, bool last_file)
+{
+	struct inode *inode = file_inode(filp);
+	int ret;
+
+	if (!inode_owner_or_capable(inode))
+		return -EACCES;
+
+	ret = mnt_want_write_file(filp);
+	if (ret)
+		return ret;
+
+	inode_lock(inode);
+
+	down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+
+	if (f2fs_is_volatile_file(inode)) {
+		ret = -EINVAL;
+		goto err_out;
+	}
+
+	if (f2fs_is_atomic_file(inode)) {
+		ret = f2fs_commit_inmem_pages(inode);
+		if (ret)
+			goto err_out;
+	}
+
+	ret = __f2fs_commit_atomic_file_set_iter(filp, true);
+	if (!ret) {
+		clear_inode_flag(inode, FI_ATOMIC_FILE);
+		F2FS_I(inode)->i_gc_failures[GC_FAILURE_ATOMIC] = 0;
+		stat_dec_atomic_write(inode);
+	}
+err_out:
+	if (is_inode_flag_set(inode, FI_ATOMIC_REVOKE_REQUEST)) {
+		clear_inode_flag(inode, FI_ATOMIC_REVOKE_REQUEST);
+		ret = -EINVAL;
+	}
+	up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+	inode_unlock(inode);
+	mnt_drop_write_file(filp);
+	return ret;
 }
 
 /*
@@ -2967,10 +3169,11 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		return -ENOENT;
 
 	down_write(&afs->afs_rwsem);
+	/* checkpoint should be blocked before below code block */
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any error? */
 		filp = af_elem->file;
-		f2fs_ioc_commit_atomic_write(filp);
+		__f2fs_ioc_commit_atomic_file_set(filp);
 	}
 	up_write(&afs->afs_rwsem);
 

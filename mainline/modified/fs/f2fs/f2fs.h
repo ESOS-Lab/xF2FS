@@ -682,8 +682,7 @@ struct f2fs_inode_info {
  * 
  * - MUFIT_NODE: Offset of mufit node block. It is similar to XATTR_NODE_OFFSET.
  * - struct atomic_file_set: It represent a atomic file set.
- * - struct atomic_file: It is pair of list_head and file. The purpose of this structure 
- *                       is listing of files to atomic file set.
+ * - struct atomic_file: It is pair of list_head and file. The purpose of this structure is listing of files to atomic file set.
  *
  * - Joontaek Oh.
  */
