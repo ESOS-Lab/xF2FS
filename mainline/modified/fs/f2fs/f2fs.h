@@ -623,6 +623,33 @@ enum {
 
 #define DEF_DIR_LEVEL		0
 
+/*
+ * This is for Multi File Transactional Write (MUFIT).
+ * 
+ * - MUFIT_NODE: Offset of mufit node block. It is similar to XATTR_NODE_OFFSET.
+ * - struct atomic_file_set: It represent a atomic file set.
+ * - struct atomic_file: It is pair of list_head and file. The purpose of this structure is listing of files to atomic file set.
+ *
+ * - Joontaek Oh.
+ */
+#define MASTER_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
+#define F2FS_MUFIT_MAGIC	0xF2F52011
+
+struct atomic_file_set {
+	struct list_head afs_list;	/* atomic file list */
+	struct rw_semaphore afs_rwsem;	/* semaphore for afs */
+	nid_t master_nid;		/* nid of mufit node */
+	struct mufit_node mn;		/* data of mufit node */
+	__le32 afs_magic;		/* magic number for atomic file set */
+};
+
+struct atomic_file {
+	struct list_head list;
+	struct file *file;
+	struct atomic_file_set *afs; 	/* pointer to atomic file set that including this file */
+	bool last_file;
+};
+
 enum {
 	GC_FAILURE_PIN,
 	GC_FAILURE_ATOMIC,
@@ -675,29 +702,8 @@ struct f2fs_inode_info {
 	int i_inline_xattr_size;	/* inline xattr size */
 	struct timespec i_crtime;	/* inode creation time */
 	struct timespec i_disk_time[4];	/* inode disk times */
-};
 
-/*
- * This is for Multi File Transactional Write (MUFIT).
- * 
- * - MUFIT_NODE: Offset of mufit node block. It is similar to XATTR_NODE_OFFSET.
- * - struct atomic_file_set: It represent a atomic file set.
- * - struct atomic_file: It is pair of list_head and file. The purpose of this structure is listing of files to atomic file set.
- *
- * - Joontaek Oh.
- */
-#define MASTER_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
-
-struct atomic_file_set {
-	struct list_head afs_list;	/* atomic file list */
-	struct rw_semaphore afs_rwsem;	/* semaphore for afs */
-	nid_t master_nid;		/* nid of mufit node */
-	struct mufit_node mn;		/* data of mufit node */
-};
-
-struct atomic_file {
-	struct list_head list;
-	struct file *file;
+	struct atomic_file *af;	/* pointer to atomic file responds to this file */
 };
 
 static inline void get_extent_info(struct extent_info *ext,
