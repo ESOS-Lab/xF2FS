@@ -1742,7 +1742,7 @@ static int f2fs_ioc_commit_atomic_write(struct file *filp)
 		goto err_out;
 	}
 
-	if (f2fs_is_atomic_file(inode)) {
+	if (f2fs_is_atomic_file(inode) || f2fs_is_added_file(inode)) {
 		ret = f2fs_commit_inmem_pages(inode);
 		if (ret)
 			goto err_out;
@@ -2876,15 +2876,17 @@ static int f2fs_ioc_precache_extents(struct file *filp, unsigned long arg)
 static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 {
 	struct inode *inode;
+	struct f2fs_inode_info *fi;
 	struct f2fs_sb_info *sbi;
 	struct atomic_file_set *afs;
 	struct atomic_file *af;
 	bool allocated = false;
 
-	if (!file || !arg)
-		return -ENOMEM;
+	if (!file || !arg /* || if the *arg is user address, FAIL. */)
+		return -ENOENT;
 
 	inode = file->f_mapping->host;
+	fi = F2FS_I(inode);
 	sbi = F2FS_I_SB(inode);
 	afs = *(struct atomic_file_set**)arg;
 
@@ -2902,6 +2904,9 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
 		allocated = true;
 	}
+
+	if (le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+		return -ENOENT;
 
 	af = f2fs_kzalloc(sbi, sizeof(struct atomic_file), GFP_KERNEL);
 
@@ -2927,9 +2932,18 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	if (allocated)
 		af->last_file = true;
 
+	/*
+	 * Files are added to atomic file set in FILO policy.
+	 * But there is no out without calling f2fs_ioc_end_atomic_file_set ().
+	 */
 	down_write(&afs->afs_rwsem);
 	list_add(&(af->list), &(afs->af_list));
 	up_write(&afs->afs_rwsem);
+
+	inode_lock(inode);
+	fi->af = af;
+	set_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
+	inode_unlock(inode);
 
 	return 0;
 }
@@ -2971,6 +2985,19 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 	return 0;
 }
 
+static int f2fs_build_master_node(struct , struct atomic_file_set *afs)
+{
+	struct dnode_of_data dn;
+	nid_t new_nid;
+
+	if (!f2fs_alloc_nid(sbi, &new_nid))
+		return -ENOSPC;
+	set_new_dnode(&dn, inode, NULL, NULL, new_nid);
+	f2fs_new_node_page();
+	f2fs_alloc_nid_done();
+	return 0;
+}
+
 /*
  * This function is called when F2FS_IOC_COMMIT_ATOMIC_FILE_SET command is
  * called. It flush all files in atomic file set. The detail steps to flush
@@ -2994,17 +3021,29 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
 	struct atomic_file *af_elem, tmp;
 	struct list_head *head = &afs->af_list;
+	int ret = 0;
 
 	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
 		return -ENOENT;
 
 	down_write(&afs->afs_rwsem);
+	
 	/* checkpoint should be blocked before below code block */
+
+	if (afs->master_nid) {
+		ret = f2fs_build_master_node(afs);
+		if (ret)
+			return ret;
+	}
+
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any error? */
 		filp = af_elem->file;
-		__f2fs_ioc_commit_atomic_file_set(filp);
+		f2fs_ioc_commit_atomic_write(filp);
 	}
+
+	/* checkpoint should be unblocked now. */
+
 	up_write(&afs->afs_rwsem);
 
 	return 0;
