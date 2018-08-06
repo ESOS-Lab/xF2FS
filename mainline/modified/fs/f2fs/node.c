@@ -1565,13 +1565,19 @@ continue_unlock:
 			if (page == last_page) {
 				if (!last_file) {
 					struct atomic_file_set *afs = F2FS_I(inode)->af->afs;
+					struct master_node *mn;
+					struct page *mpage;
 					struct node_info ni;
 					nid_t nid;
+
+					mpage = f2fs_get_node_page(sbi, afs->master_nid);
+					mn = page_address(mpage);
 
 					/* Copy Node address to Master node block  */
 					nid = nid_of_node(page);
 					f2fs_get_node_info(sbi, nid, &ni);
-					afs->mn.atm_addrs[afs->commit_file_count++] = ni.blk_addr;
+					mn->atm_addrs[afs->commit_file_count++] = ni.blk_addr;
+					f2fs_put_page(mpage, 1);
 				}
 				f2fs_put_page(page, 0);
 				marked = true;
@@ -2922,3 +2928,60 @@ void f2fs_destroy_node_manager_caches(void)
 	kmem_cache_destroy(free_nid_slab);
 	kmem_cache_destroy(nat_entry_slab);
 }
+
+/*
+ * It build new master node. Master node is special node. It is used with Multi-File 
+ * Transactional write. It is allocated when atomic file set having no master node is
+ * committed. When each file in atomic file set are committed, block address of its
+ * last node block is added to master node block. 
+ *
+ * - Joontaek Oh.
+ */
+int f2fs_build_master_node(struct atomic_file_set *afs)
+{
+	struct f2fs_sb_info *sbi;
+	struct inode *inode;
+	struct dnode_of_data dn;
+	struct page *mpage;
+	nid_t new_nid;
+
+	inode = afs->last_file->file->f_inode;
+	sbi = F2FS_I_SB(inode);
+
+	if (!f2fs_alloc_nid(sbi, &new_nid))
+		return -ENOSPC;
+	set_new_dnode(&dn, inode, NULL, NULL, new_nid);
+	mpage = f2fs_new_node_page(&dn, MASTER_NODE_OFFSET);
+	if (IS_ERR(mpage)) {
+		f2fs_alloc_nid_failed(sbi, new_nid);
+		return PTR_ERR(mpage);
+
+	}
+	f2fs_alloc_nid_done(sbi, new_nid);
+
+	afs->master_nid = new_nid;
+
+	f2fs_put_page(mpage, 1);
+	return 0;
+}
+
+int f2fs_truncate_master_node(struct atomic_file_set *afs)
+{
+	struct f2fs_sb_info *sbi;
+	struct inode *inode;
+	struct dnode_of_data dn;
+	struct page *mpage;
+
+	inode = afs->last_file->file->f_inode;
+	sbi = F2FS_I_SB(inode);
+
+	mpage = f2fs_get_node_page(sbi, afs->master_nid);
+	if (IS_ERR(mpage))
+		return PTR_ERR(mpage);
+
+	/* free master node */
+	set_new_dnode(&dn, inode, NULL, mpage, afs->master_nid);
+	truncate_dnode(&dn);
+	return 0;
+}
+

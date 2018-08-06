@@ -200,7 +200,7 @@ struct f2fs_extent {
 #define ADDRS_PER_BLOCK		1018	/* Address Pointers in a Direct Block */
 #define NIDS_PER_BLOCK		1018	/* Node IDs in an Indirect Block */
 
-#defien ADDRS_PER_MASTER_NODE	(ADDRS_PER_BLOCK - 1)	/* Address Pointers in a master node block */
+#define ADDRS_PER_MASTER_NODE	(ADDRS_PER_BLOCK - 1)	/* Address Pointers in a master node block */
 
 #define ADDRS_PER_PAGE(page, inode)	\
 	(IS_INODE(page) ? ADDRS_PER_INODE(inode) : ADDRS_PER_BLOCK)

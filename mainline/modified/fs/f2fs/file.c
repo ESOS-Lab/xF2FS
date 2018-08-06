@@ -2875,17 +2875,17 @@ static int f2fs_ioc_precache_extents(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 {
-	struct inode *inode;
-	struct f2fs_inode_info *fi;
 	struct f2fs_sb_info *sbi;
+	struct f2fs_inode_info *fi;
 	struct atomic_file_set *afs;
 	struct atomic_file *af;
+	struct inode *inode;
 	bool allocated = false;
 
-	if (!file || !arg /* || if the *arg is user address, FAIL. */)
+	if (!filp || !arg /* || if the *arg is user address, FAIL. */)
 		return -ENOENT;
 
-	inode = file->f_mapping->host;
+	inode = filp->f_mapping->host;
 	fi = F2FS_I(inode);
 	sbi = F2FS_I_SB(inode);
 	afs = *(struct atomic_file_set**)arg;
@@ -2900,7 +2900,6 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 			return -ENOMEM;
 		INIT_LIST_HEAD(&afs->afs_list);
 		init_rwsem(&afs->afs_rwsem);
-		afs->master_nid = 0;
 		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
 		allocated = true;
 	}
@@ -2929,15 +2928,17 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	 * The file that is inserted to atomic file list at first,
 	 * should be last file.
 	 */
-	if (allocated)
+	down_write(&afs->afs_rwsem);
+	if (allocated) {
 		af->last_file = true;
+		afs->last_file = af;
+	}
 
 	/*
 	 * Files are added to atomic file set in FILO policy.
 	 * But there is no out without calling f2fs_ioc_end_atomic_file_set ().
 	 */
-	down_write(&afs->afs_rwsem);
-	list_add(&(af->list), &(afs->af_list));
+	list_add(&(af->list), &(afs->afs_list));
 	up_write(&afs->afs_rwsem);
 
 	inode_lock(inode);
@@ -2960,8 +2961,8 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 {
 	struct atomic_file_set *afs;
-	struct atomic_file *af_elem, tmp;
-	struct list_head *head = &afs->af_list;
+	struct atomic_file *af_elem, *tmp;
+	struct list_head *head;
 
 	if (!arg)
 		return -ENOENT;
@@ -2970,6 +2971,8 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 
 	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
 		return -ENOENT;
+
+	head = &afs->afs_list;
 
 	down_write(&afs->afs_rwsem);
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
@@ -2982,19 +2985,6 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 	}
 	up_write(&afs->afs_rwsem);
 
-	return 0;
-}
-
-static int f2fs_build_master_node(struct , struct atomic_file_set *afs)
-{
-	struct dnode_of_data dn;
-	nid_t new_nid;
-
-	if (!f2fs_alloc_nid(sbi, &new_nid))
-		return -ENOSPC;
-	set_new_dnode(&dn, inode, NULL, NULL, new_nid);
-	f2fs_new_node_page();
-	f2fs_alloc_nid_done();
 	return 0;
 }
 
@@ -3019,8 +3009,8 @@ static int f2fs_build_master_node(struct , struct atomic_file_set *afs)
 static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 {
 	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
-	struct atomic_file *af_elem, tmp;
-	struct list_head *head = &afs->af_list;
+	struct atomic_file *af_elem, *tmp;
+	struct list_head *head = &afs->afs_list;
 	int ret = 0;
 
 	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
@@ -3059,16 +3049,20 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 {
 	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
-	struct atomic_file *af_elem, tmp;
-	struct list_head *head = &afs->af_list;
+	struct atomic_file *af_elem, *tmp;
+	struct list_head *head = &afs->afs_list;
 
 	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
 		return -ENOENT;
 
 	down_write(&afs->afs_rwsem);
+
+	if (afs->master_nid)
+		f2fs_truncate_master_node(afs);
+
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any process to do when release atomic_file? */
-		list_del(af_elem);
+		list_del(&af_elem->list);
 		kfree(af_elem);
 	}
 	
