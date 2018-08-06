@@ -1,0 +1,2 @@
+cflags="-I/usr/include/ncursesw "
+libs="-lncurses "
