@@ -2890,6 +2890,9 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	sbi = F2FS_I_SB(inode);
 	afs = *(struct atomic_file_set**)arg;
 
+	if (f2fs_is_added_file(inode))
+		return -ENOENT;
+
 	/*
 	 * If the value that being pointed by *arg* is NULL, we should allocate
 	 * new atomic file set.
@@ -2898,6 +2901,7 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
 		if (!afs)
 			return -ENOMEM;
+		*(struct atomic_file_set**)arg = afs;
 		INIT_LIST_HEAD(&afs->afs_list);
 		init_rwsem(&afs->afs_rwsem);
 		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
@@ -2923,6 +2927,7 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	}
 
 	af->file = filp;
+	af->afs = afs;
 
 	/*
 	 * The file that is inserted to atomic file list at first,
@@ -2969,7 +2974,7 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 
 	afs = *(struct atomic_file_set**)arg;
 
-	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
+	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
 		return -ENOENT;
 
 	head = &afs->afs_list;
@@ -3008,19 +3013,26 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 {
-	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct atomic_file_set *afs;
 	struct atomic_file *af_elem, *tmp;
-	struct list_head *head = &afs->afs_list;
+	struct list_head *head;
 	int ret = 0;
 
-	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
+	if (!arg)
 		return -ENOENT;
+
+	afs = *(struct atomic_file_set**)arg;
+
+	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+		return -ENOENT;
+
+	head = &afs->afs_list;
 
 	down_write(&afs->afs_rwsem);
 	
 	/* checkpoint should be blocked before below code block */
 
-	if (afs->master_nid) {
+	if (!afs->master_nid) {
 		ret = f2fs_build_master_node(afs);
 		if (ret)
 			return ret;
@@ -3048,12 +3060,19 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 {
-	struct atomic_file_set *afs = *(struct atomic_file_set**)arg;
+	struct atomic_file_set *afs;
 	struct atomic_file *af_elem, *tmp;
-	struct list_head *head = &afs->afs_list;
+	struct list_head *head;
+
+	if (!arg)
+		return -ENOENT;
+
+	afs = *(struct atomic_file_set**)arg;
 
 	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
 		return -ENOENT;
+
+	head = &afs->afs_list;
 
 	down_write(&afs->afs_rwsem);
 
@@ -3062,6 +3081,8 @@ static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any process to do when release atomic_file? */
+		F2FS_I(af_elem->file->f_inode)->af = NULL;
+		clear_inode_flag(af_elem->file->f_inode, FI_ADDED_ATOMIC_FILE);
 		list_del(&af_elem->list);
 		kfree(af_elem);
 	}

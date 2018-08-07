@@ -2981,7 +2981,7 @@ int f2fs_truncate_master_node(struct atomic_file_set *afs)
 
 	/* free master node */
 	set_new_dnode(&dn, inode, NULL, mpage, afs->master_nid);
-	truncate_dnode(&dn);
+	truncate_node(&dn);
 	return 0;
 }
 
