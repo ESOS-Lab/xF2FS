@@ -2969,10 +2969,7 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 	struct atomic_file *af_elem, *tmp;
 	struct list_head *head;
 
-	if (!arg)
-		return -ENOENT;
-
-	afs = *(struct atomic_file_set**)arg;
+	afs = (struct atomic_file_set*)arg;
 
 	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
 		return -ENOENT;
@@ -3018,10 +3015,7 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	struct list_head *head;
 	int ret = 0;
 
-	if (!arg)
-		return -ENOENT;
-
-	afs = *(struct atomic_file_set**)arg;
+	afs = (struct atomic_file_set*)arg;
 
 	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
 		return -ENOENT;
@@ -3044,6 +3038,8 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		f2fs_ioc_commit_atomic_write(filp);
 	}
 
+	afs->commit_file_count = 0;
+
 	/* checkpoint should be unblocked now. */
 
 	up_write(&afs->afs_rwsem);
@@ -3064,10 +3060,7 @@ static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 	struct atomic_file *af_elem, *tmp;
 	struct list_head *head;
 
-	if (!arg)
-		return -ENOENT;
-
-	afs = *(struct atomic_file_set**)arg;
+	afs = (struct atomic_file_set*)arg;
 
 	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
 		return -ENOENT;

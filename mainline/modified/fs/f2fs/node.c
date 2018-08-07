@@ -1485,7 +1485,7 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
 		last_page = last_fsync_dnode(sbi, ino);
 		if (IS_ERR_OR_NULL(last_page))
 			return PTR_ERR_OR_ZERO(last_page);
-		if (f2fs_is_added_file(inode) && !F2FS_I(inode)->af->last_file)
+		if (f2fs_is_added_file(inode) &&  F2FS_I(inode)->af && !F2FS_I(inode)->af->last_file)
 			last_file = false;
 	}
 retry:
@@ -2982,6 +2982,6 @@ int f2fs_truncate_master_node(struct atomic_file_set *afs)
 	/* free master node */
 	set_new_dnode(&dn, inode, NULL, mpage, afs->master_nid);
 	truncate_node(&dn);
+	afs->master_nid = 0;
 	return 0;
 }
-

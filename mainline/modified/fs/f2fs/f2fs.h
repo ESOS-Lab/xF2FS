@@ -638,7 +638,6 @@ enum {
 struct atomic_file_set {
 	struct list_head afs_list;	/* atomic file list */
 	struct rw_semaphore afs_rwsem;	/* semaphore for afs */
-	unsigned int total_af_file;	/* total atomic files in atomic file set, it never be decreased. */
 	unsigned int commit_file_count;	/* commit count in atomic file set */
 	struct atomic_file *last_file;	/* last file in atomic file set */
 	nid_t master_nid;		/* nid of mufit node */
