@@ -243,6 +243,9 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 	unsigned int loop_cnt = 0;
 	unsigned int free_blocks = sbi->user_block_count -
 					valid_user_blocks(sbi);
+	struct page *master_page = NULL;
+	struct master_node *mn = NULL;
+	int afs_files = 0;
 	int err = 0;
 
 	/* get node pages in the current segment */
@@ -262,6 +265,14 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 
 		if (!is_fsync_dnode(page))
 			goto next;
+
+		if (is_master_node(page)) {
+			master_page = page;
+			mn = &F2FS_NODE(master_page)->mn;
+			afs_files = mn->count_valid_addr;
+read_master:
+			page = f2fs_get_tmp_page(sbi, mn->atm_addrs[mn->count_valid_addr]);
+		}
 
 		entry = get_fsync_inode(head, ino_of_node(page));
 		if (!entry) {
@@ -294,6 +305,12 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 
 		if (IS_INODE(page) && is_dent_dnode(page))
 			entry->last_dentry = blkaddr;
+
+		if (afs_files)
+			goto read_master;
+
+		if (master_page)
+			page = master_page;
 next:
 		/* sanity check in order to detect looped node chain */
 		if (++loop_cnt >= free_blocks ||

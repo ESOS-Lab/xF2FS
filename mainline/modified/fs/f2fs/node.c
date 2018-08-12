@@ -1533,7 +1533,7 @@ continue_unlock:
 			set_fsync_mark(page, 0);
 			set_dentry_mark(page, 0);
 
-			if (!atomic || page == last_page) {
+			if ((!atomic || page == last_page) && last_file) {
 				set_fsync_mark(page, 1);
 				if (IS_INODE(page)) {
 					if (is_inode_flag_set(inode,
