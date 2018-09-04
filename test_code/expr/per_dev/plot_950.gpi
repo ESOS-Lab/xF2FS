@@ -1,0 +1,24 @@
+unset title
+set terminal postscript eps enhanced monochrome size 25cm, 15cm rounded font "Helvetical, 46"
+set style data histogram
+set style histogram clustered gap 1 title offset 0, -1
+set style fill pattern border -1
+set boxwidth 1 absolute
+#set key enhanced outside Left top horizontal reverse nobox samplen 2 width 2 height .1 spacing 1.5 font "Helvetical, 26"
+set key enhanced outside left top horizontal Left reverse nobox samplen 1.5 width 0 height 0 spacing 1.5 font "Helvetical, 46"
+#set key off
+
+set bmargin 3
+#set xrange [.3:9.2]
+#set xtics  nomirror font "Helvetical, 46"
+#set yrange [0:500]
+#set ytics autofreq 20 nomirror offset 0.5 font "Helvetical, 46"
+set ytic 100
+#set grid ytics
+
+set ylabel "Transaction/sec." offset 2 font "Helvetical, 46"
+
+set output "img/950_tps.eps"
+plot newhistogram "Insert" at 0, 'dev_950.dat'u "INSEP":xtic(1) fill pattern 0 lt 1 t 'EXT4 PERSIST', ''u "INSEW":xtic(1) fill pattern 1 lt 1 t 'EXT4 WAL', ''u "INSEL":xtic(1) fill pattern 5 lt 1 t 'EXT4 LS-MVBT',''u "INSFP":xtic(1) fill pattern 2 lt 1 t 'F2FS PERSIST', ''u "INSFW":xtic(1) fill pattern 4 lt 1 t 'F2FS WAL', ''u "INSFL":xtic(1) fill pattern 6 lt 1 t 'F2FS LS-MVBT', ''u "INSFM":xtic(1) fill pattern 3 lt 1 t 'MUFIT', \
+newhistogram "Update" at 4.5, 'dev_950.dat'u "UPDEP":xtic(1) fill pattern 0 lt 1 notitle, ''u "UPDEW":xtic(1) fill pattern 1 lt 1 notitle, ''u "UPDEL":xtic(1) fill pattern 5 lt 1 notitle, ''u "UPDFP":xtic(1) fill pattern 2 lt 1 notitle, ''u "UPDFW":xtic(1) fill pattern 4 lt 1 notitle, ''u "UPDFL":xtic(1) fill pattern 6 lt 1 notitle, ''u "UPDFM":xtic(1) fill pattern 3 lt 1 notitle, \
+newhistogram "Delete" at 9, 'dev_950.dat'u "DELEP":xtic(1) fill pattern 0 lt 1 notitle, ''u "DELEW":xtic(1) fill pattern 1 lt 1 notitle, ''u "DELEL":xtic(1) fill pattern 5 lt 1 notitle, ''u "DELFP":xtic(1) fill pattern 2 lt 1 notitle, ''u "DELFW":xtic(1) fill pattern 4 lt 1 notitle, ''u "DELFL":xtic(1) fill pattern 6 lt 1 notitle, ''u "DELFM":xtic(1) fill pattern 3 lt 1 notitle
