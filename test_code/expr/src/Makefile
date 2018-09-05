@@ -1,9 +1,9 @@
 
 #CROSS=arm-linux-gnueabi-
 
-EXENAME = mobibench_MFAW_3
+EXENAME = mobibench_MFAW_9
 
-SRCS = mobibench_3.c \
+SRCS = mobibench_9.c \
 	  sqlite3_MFAW.c
 
 INSTALL = install

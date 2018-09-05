@@ -1,13 +1,13 @@
 #! /bin/bash
 
 DEV=(/dev/sdb1 /dev/nvme0n1)
-ORG=(org_3 org_5 org_7 org_9)
+#ORG=(org_3 org_5 org_7 org_9)
 #ORG=(org_3)
 #ORG=(donut_3)
 #ORG=(lsmvbt_3 lsmvbt_5 lsmvbt_7 lsmvbt_9)
 #ORG=(lsmvbt_3)
-#MFAW=(MFAW_3 MFAW_5 MFAW_7 MFAW_9)
-MFAW=(MFAW_9)
+MFAW=(MFAW_3 MFAW_5 MFAW_7 MFAW_9)
+#MFAW=(MFAW_9)
 
 for dev in ${DEV[@]}
 do
@@ -19,6 +19,8 @@ do
 			dev_str="950"
 			;;
 	esac
+
+	mkdir result
 
 #	for org in ${ORG[@]}
 #	do
