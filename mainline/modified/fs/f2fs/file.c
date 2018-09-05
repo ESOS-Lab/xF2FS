@@ -286,7 +286,7 @@ sync_nodes:
 		goto out;
 	}
 
-	if (f2fs_need_inode_block_update(sbi, ino)) {
+	if (f2fs_need_inode_block_update(sbi, ino) && !f2fs_is_added_file(inode)) {
 		f2fs_mark_inode_dirty_sync(inode, true);
 		f2fs_write_inode(inode, NULL);
 		goto sync_nodes;
