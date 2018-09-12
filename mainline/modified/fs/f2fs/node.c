@@ -1577,6 +1577,7 @@ continue_unlock:
 					nid = nid_of_node(page);
 					f2fs_get_node_info(sbi, nid, &ni);
 					mn->atm_addrs[afs->commit_file_count++] = ni.blk_addr;
+					set_page_dirty(mpage);
 					f2fs_put_page(mpage, 1);
 				}
 				f2fs_put_page(page, 0);
