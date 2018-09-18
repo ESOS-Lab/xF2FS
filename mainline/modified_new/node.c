@@ -1492,10 +1492,10 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
 		last_page = last_fsync_dnode(sbi, ino);
 		if (IS_ERR_OR_NULL(last_page))
 			return PTR_ERR_OR_ZERO(last_page);
-		/*if (f2fs_is_added_file(inode) &&  F2FS_I(inode)->af && !F2FS_I(inode)->af->last_file)
-			last_file = false;*/
-		if (f2fs_is_added_file(inode))
+		if (f2fs_is_added_file(inode) &&  F2FS_I(inode)->af && !F2FS_I(inode)->af->last_file)
 			last_file = false;
+		/*if (f2fs_is_added_file(inode))
+			last_file = false;*/
 	}
 retry:
 	pagevec_init(&pvec);
@@ -2972,6 +2972,8 @@ int f2fs_build_master_node(struct atomic_file_set *afs)
 	f2fs_alloc_nid_done(sbi, new_nid);
 
 	afs->master_nid = new_nid;
+
+	//clear_node_page_dirty(mpage);
 
 	f2fs_put_page(mpage, 1);
 	return 0;

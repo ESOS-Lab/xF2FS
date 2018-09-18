@@ -3018,7 +3018,8 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	struct page *mpage;
 	struct list_head *head;
 	struct blk_plug plug;
-	int ret = 0, i = 0;
+	//int ret = 0, i = 0;
+	int ret = 0;
 	struct writeback_control wbc = {
 		.sync_mode = WB_SYNC_ALL,
 		.nr_to_write = LONG_MAX,
@@ -3054,24 +3055,16 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		inode = file_inode(filp);
 
 		inode_lock(inode);
-
 		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
-
 		f2fs_commit_inmem_pages_atomic_file_set(inode, &af_elem->revoke_list);
-
 		up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
 		inode_unlock(inode);
 	}
 
-	ssleep(1);
-
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any error? */
 		filp = af_elem->file;
-		//f2fs_ioc_commit_atomic_write(filp);
-		//__f2fs_write_cache_pages(filp->f_inode->i_mapping, &wbc, FS_DATA_IO);
 		f2fs_fsync_node_pages(sbi, filp->f_inode, &wbc, true);
-		//printk("[JATA DBG] (%s) file %d is committed\n", __func__, i++);
 	}
 	blk_finish_plug(&plug);
 
@@ -3080,25 +3073,28 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		/* Is there no any error? */
 		filp = af_elem->file;
 		inode = file_inode(filp);
-		//f2fs_ioc_commit_atomic_write(filp);
-		//filemap_fdatawait_range(filp->f_inode->i_mapping, 0, LLONG_MAX);
 		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
 		f2fs_wait_on_node_pages_writeback(sbi, filp->f_inode->i_ino);
 	}
 
 	mpage = f2fs_get_node_page(sbi, afs->master_nid);
-	f2fs_wait_on_page_writeback(mpage, NODE, true);
 	set_fsync_mark(mpage, 1);
-	//set_page_dirty(mpage);
-
-	blk_start_plug(&plug);
-	____write_node_page(mpage, true, NULL, &wbc, true, FS_NODE_IO);
-	blk_finish_plug(&plug);
+	set_page_dirty(mpage);
 	f2fs_wait_on_page_writeback(mpage, NODE, true);
 
-	//unlock_page(mpage);
-	f2fs_put_page(mpage, 0);
+	if (!clear_page_dirty_for_io(mpage)) {
+		printk("[JATA DBG] (%s) clear master node page fails\n", __func__);
+		goto out;
+	}
 
+	if (____write_node_page(mpage, true, NULL, &wbc, true, FS_NODE_IO)) {
+		printk("[JATA DBG] (%s) master node page write fails\n", __func__);
+		unlock_page(mpage);
+	}
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+
+out:
+	f2fs_put_page(mpage, 0);
 	afs->commit_file_count = 0;
 
 	/* checkpoint should be unblocked now. */

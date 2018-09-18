@@ -266,13 +266,14 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 		if (!is_fsync_dnode(page))
 			goto next;
 
-		/*if (is_master_node(page)) {
-			master_page = page;
+		if (is_master_node(page)) {
+			goto next;
+			/*master_page = page;
 			mn = &F2FS_NODE(master_page)->mn;
 			afs_files = mn->count_valid_addr;
 read_master:
-			page = f2fs_get_tmp_page(sbi, mn->atm_addrs[mn->count_valid_addr]);
-		}*/
+			page = f2fs_get_tmp_page(sbi, mn->atm_addrs[mn->count_valid_addr]);*/
+		}
 
 		entry = get_fsync_inode(head, ino_of_node(page));
 		if (!entry) {
