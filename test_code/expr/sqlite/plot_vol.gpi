@@ -1,0 +1,30 @@
+unset title
+set terminal postscript eps enhanced monochrome size 20cm, 7cm rounded font "Helvetical, 36"
+set style data histogram
+set style histogram clustered gap 1 title offset 0, -1
+set style fill pattern border -1
+set boxwidth 1 absolute
+#set key enhanced outside Left top horizontal reverse nobox samplen 2 width -.7 height .1 spacing 1.5 font "Helvetical, 17"
+set key enhanced outside center top horizontal reverse nobox samplen 2 width -.7 height 0.1 spacing 1.5 maxrows 1 font "Helvetical, 26"
+
+set bmargin 3
+#set xrange [.3:9.2]
+set xtics  nomirror font "Helvetical, 36"
+#set yrange [0:190]
+set ytics autofreq 20 nomirror font "Helvetical, 36"
+set ytic 1000
+set grid ytics
+
+set ylabel "I/O Volume (Mbyte)" font "Helvetical, 36"
+
+set output "img/MFAW_vol.eps"
+#plot newhistogram "840 Pro" at 1, 'oper.dat' u "840EP":xtic(1) fill pattern 0 lt 1 t 'EXT4 PERSIST', ''u "840FP":xtic(1) fill pattern 2 lt 1 t 'F2FS PERSIST', ''u "840FM":xtic(1) fill pattern 4 lt 1 t 'F2FS MFAW'
+plot 'vol.dat' \
+		 u "SQLiteDB":xtic(1) fill pattern 0 lt 1 t 'SQLite DB', \
+		 ''u "SQLiteJrnl":xtic(1) fill pattern 2 lt 1 t 'SQLite Journal', \
+		 ''u "EXT4Jrnl":xtic(1) fill pattern 2 lt 1 t 'EXT4 Journal', \
+		 ''u "F2FSNode":xtic(1) fill pattern 4 lt 1 t 'F2FS Node', \
+		 ''u "F2FSMetadata":xtic(1) fill pattern 6 lt 1 t 'F2FS Metadata', \
+		 ''u "F2FSCheckpoint":xtic(1) fill pattern 8 lt 1 t 'F2FS Checkpoint', \
+		 ''u "Total":xtic(1) fill pattern 3 lt 1 t 'Total'
+#plot 'vol.dat'
