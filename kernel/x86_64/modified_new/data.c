@@ -2497,7 +2497,21 @@ static int f2fs_set_data_page_dirty(struct page *page)
 	if (!PageUptodate(page))
 		SetPageUptodate(page);
 
-	if (f2fs_is_atomic_file(inode) && !f2fs_is_commit_atomic_write(inode)) {
+	if (current->is_atomic || (f2fs_is_atomic_file(inode) && !f2fs_is_commit_atomic_write(inode))) {
+		if (!f2fs_is_atomic_file(inode) && current->is_atomic) {
+			int locked = 0;
+
+			if (inode_is_locked(inode)) {
+				inode_unlock(inode);
+				locked = 1;
+			}
+
+			f2fs_ioc_add_atomic_inode(inode, (unsigned long)&current->afs);
+
+			if (locked)
+				inode_lock(inode);
+		}
+
 		if (!IS_ATOMIC_WRITTEN_PAGE(page)) {
 			f2fs_register_inmem_page(inode, page);
 			return 1;

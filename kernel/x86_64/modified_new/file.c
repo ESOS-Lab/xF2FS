@@ -1723,6 +1723,50 @@ out:
 	return ret;
 }
 
+static int f2fs_ioc_start_atomic_write_inode(struct inode *inode)
+{
+	int ret;
+
+	if (!inode_owner_or_capable(inode))
+		return -EACCES;
+
+	if (!S_ISREG(inode->i_mode))
+		return -EINVAL;
+
+	inode_lock(inode);
+
+	down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+
+	if (f2fs_is_atomic_file(inode))
+		goto out;
+
+	ret = f2fs_convert_inline_inode(inode);
+	if (ret)
+		goto out;
+
+	if (!get_dirty_pages(inode))
+		goto skip_flush;
+
+	f2fs_msg(F2FS_I_SB(inode)->sb, KERN_WARNING,
+		"Unexpected flush for atomic writes: ino=%lu, npages=%u",
+					inode->i_ino, get_dirty_pages(inode));
+	ret = filemap_write_and_wait_range(inode->i_mapping, 0, LLONG_MAX);
+	if (ret)
+		goto out;
+skip_flush:
+	set_inode_flag(inode, FI_ATOMIC_FILE);
+	clear_inode_flag(inode, FI_ATOMIC_REVOKE_REQUEST);
+	f2fs_update_time(F2FS_I_SB(inode), REQ_TIME);
+
+	F2FS_I(inode)->inmem_task = current;
+	stat_inc_atomic_write(inode);
+	stat_update_max_atomic_write(inode);
+out:
+	up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+	inode_unlock(inode);
+	return ret;
+}
+
 static int f2fs_ioc_commit_atomic_write(struct file *filp)
 {
 	struct inode *inode = file_inode(filp);
@@ -2928,7 +2972,7 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		return -ENOMEM;
 	}
 
-	af->file = filp;
+	af->inode = inode;
 	af->afs = afs;
 
 	/*
@@ -2937,6 +2981,71 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	 */
 	down_write(&afs->afs_rwsem);
 	if (allocated) {
+		af->last_file = true;
+		afs->last_file = af;
+	}
+
+	/*
+	 * Files are added to atomic file set in FILO policy.
+	 * But there is no out without calling f2fs_ioc_end_atomic_file_set ().
+	 */
+	list_add(&(af->list), &(afs->afs_list));
+	up_write(&afs->afs_rwsem);
+
+	inode_lock(inode);
+	fi->af = af;
+	set_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
+	inode_unlock(inode);
+
+	return 0;
+}
+
+int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg)
+{
+	struct f2fs_sb_info *sbi;
+	struct f2fs_inode_info *fi;
+	struct atomic_file_set *afs;
+	struct atomic_file *af;
+	bool allocated = false;
+
+	fi = F2FS_I(inode);
+	sbi = F2FS_I_SB(inode);
+	afs = *(struct atomic_file_set**)arg;
+
+	if (f2fs_is_added_file(inode))
+		return -ENOENT;
+
+	if (!afs) {
+		return -ENOENT;
+	}
+
+	if (le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+		return -ENOENT;
+
+	af = f2fs_kzalloc(sbi, sizeof(struct atomic_file), GFP_KERNEL);
+
+	/* 
+	 * If afs has just been created, afs_list must be empty.
+	 * A empty afs_list have no way to be released, so there are
+	 * must no empty atomic file set having empty afs_list.
+	 * If this situation is occured, a empty afs should be
+	 * released.
+	 */
+	if (!af) {
+		if (allocated)
+			kfree(afs);
+		return -ENOMEM;
+	}
+
+	af->inode = inode;
+	af->afs = afs;
+
+	/*
+	 * The file that is inserted to atomic file list at first,
+	 * should be last file.
+	 */
+	down_write(&afs->afs_rwsem);
+	if (!list_empty(&afs->afs_list)) {
 		af->last_file = true;
 		afs->last_file = af;
 	}
@@ -2967,13 +3076,29 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
  */
 static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 {
+	struct f2fs_sb_info *sbi;
 	struct atomic_file_set *afs;
 	struct atomic_file *af_elem, *tmp;
 	struct list_head *head;
+	struct inode *inode;
 
 	afs = (struct atomic_file_set*)arg;
 
-	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+	sbi = F2FS_I_SB(filp->f_inode);
+
+	if (!afs) {
+		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
+		if (!afs)
+			return -ENOMEM;
+		INIT_LIST_HEAD(&afs->afs_list);
+		init_rwsem(&afs->afs_rwsem);
+		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
+
+		current->afs = afs;
+		current->is_atomic = true;
+	}
+
+	if (le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
 		return -ENOENT;
 
 	head = &afs->afs_list;
@@ -2984,13 +3109,15 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 		 * Is there no any error? 
 		 * If af_elem is NULL? Huh?
 		 */
-		filp = af_elem->file;
-		f2fs_ioc_start_atomic_write(filp);
+		inode = af_elem->inode;
+		f2fs_ioc_start_atomic_write_inode(inode);
 	}
 	up_write(&afs->afs_rwsem);
 
 	return 0;
 }
+
+static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg);
 
 /*
  * This function is called when F2FS_IOC_COMMIT_ATOMIC_FILE_SET command is
@@ -3015,10 +3142,10 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	struct f2fs_sb_info *sbi;
 	struct atomic_file_set *afs;
 	struct atomic_file *af_elem, *tmp;
+	struct inode *inode;
 	struct page *mpage;
 	struct list_head *head;
 	struct blk_plug plug;
-	//int ret = 0, i = 0;
 	int ret = 0;
 	struct writeback_control wbc = {
 		.sync_mode = WB_SYNC_ALL,
@@ -3030,15 +3157,18 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 
 	afs = (struct atomic_file_set*)arg;
 
+	if (!afs && current->is_atomic)
+		afs = current->afs;
+
 	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
 		return -ENOENT;
 
-	sbi = F2FS_I_SB(afs->last_file->file->f_inode);
+	sbi = F2FS_I_SB(afs->last_file->inode);
 
 	head = &afs->afs_list;
 
 	down_write(&afs->afs_rwsem);
-	
+
 	/* checkpoint should be blocked before below code block */
 
 	if (!afs->master_nid) {
@@ -3051,8 +3181,7 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		struct inode *inode;
 		/* Is there no any error? */
-		filp = af_elem->file;
-		inode = file_inode(filp);
+		inode = af_elem->inode;
 
 		inode_lock(inode);
 		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
@@ -3063,18 +3192,17 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any error? */
-		filp = af_elem->file;
-		f2fs_fsync_node_pages(sbi, filp->f_inode, &wbc, true);
+		inode = af_elem->inode;
+		f2fs_fsync_node_pages(sbi, inode, &wbc, true);
 	}
 	blk_finish_plug(&plug);
 
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		struct inode *inode;
 		/* Is there no any error? */
-		filp = af_elem->file;
-		inode = file_inode(filp);
+		inode = af_elem->inode;
 		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
-		f2fs_wait_on_node_pages_writeback(sbi, filp->f_inode->i_ino);
+		f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
 	}
 
 	mpage = f2fs_get_node_page(sbi, afs->master_nid);
@@ -3100,6 +3228,11 @@ out:
 	/* checkpoint should be unblocked now. */
 
 	up_write(&afs->afs_rwsem);
+
+	if (current->is_atomic && current->afs == afs) {
+		f2fs_ioc_end_atomic_file_set(NULL, (unsigned long)afs);
+		current->is_atomic = false;
+	}
 
 	return 0;
 }
@@ -3131,8 +3264,8 @@ static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
 		/* Is there no any process to do when release atomic_file? */
-		F2FS_I(af_elem->file->f_inode)->af = NULL;
-		clear_inode_flag(af_elem->file->f_inode, FI_ADDED_ATOMIC_FILE);
+		F2FS_I(af_elem->inode)->af = NULL;
+		clear_inode_flag(af_elem->inode, FI_ADDED_ATOMIC_FILE);
 		list_del(&af_elem->list);
 		kfree(af_elem);
 	}

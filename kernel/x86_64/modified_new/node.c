@@ -1486,16 +1486,13 @@ int f2fs_fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
 	bool marked = false;
 	nid_t ino = inode->i_ino;
 	int nr_pages;
-	bool last_file = true;
 
 	if (atomic) {
 		last_page = last_fsync_dnode(sbi, ino);
 		if (IS_ERR_OR_NULL(last_page))
 			return PTR_ERR_OR_ZERO(last_page);
-		if (f2fs_is_added_file(inode) &&  F2FS_I(inode)->af && !F2FS_I(inode)->af->last_file)
-			last_file = false;
-		/*if (f2fs_is_added_file(inode))
-			last_file = false;*/
+		if (f2fs_is_added_file(inode))
+			atomic = false;
 	}
 retry:
 	pagevec_init(&pvec);
@@ -1520,6 +1517,10 @@ retry:
 				continue;
 			if (ino_of_node(page) != ino)
 				continue;
+			if (is_master_node(page)) {
+				marked = true;
+				continue;
+			}
 
 			lock_page(page);
 
@@ -1543,8 +1544,7 @@ continue_unlock:
 			set_dentry_mark(page, 0);
 
 			if ((!atomic || page == last_page)) {
-				if (last_file)
-					set_fsync_mark(page, 1);
+				set_fsync_mark(page, 1);
 				if (IS_INODE(page)) {
 					if (is_inode_flag_set(inode,
 								FI_DIRTY_INODE))
@@ -1560,9 +1560,8 @@ continue_unlock:
 			if (!clear_page_dirty_for_io(page))
 				goto continue_unlock;
 
-			//if (!(ofs_of_node(page) == MASTER_NODE_OFFSET && !last_file))
 			ret = __write_node_page(page, atomic &&
-						(page == last_page) && last_file,
+						page == last_page,
 						&submitted, wbc, true,
 						FS_NODE_IO);
 			if (ret) {
@@ -1574,24 +1573,24 @@ continue_unlock:
 			}
 
 			if (page == last_page) {
-				if (!last_file) {
-					struct atomic_file_set *afs = F2FS_I(inode)->af->afs;
-					struct master_node *mn;
-					struct page *mpage;
-					struct node_info ni;
-					nid_t nid;
+				struct atomic_file_set *afs = F2FS_I(inode)->af->afs;
+				struct master_node *mn;
+				struct page *mpage;
+				struct node_info ni;
+				nid_t nid;
 
-					mpage = f2fs_get_node_page(sbi, afs->master_nid);
-					mn = page_address(mpage);
+				mpage = f2fs_get_node_page(sbi, afs->master_nid);
+				mn = page_address(mpage);
 
-					/* Copy Node address to Master node block  */
-					nid = nid_of_node(page);
-					f2fs_get_node_info(sbi, nid, &ni);
-					mn->atm_addrs[afs->commit_file_count++] = ni.blk_addr;
-					//set_page_dirty(mpage);
-					f2fs_put_page(mpage, 1);
-				}
+				/* Copy Node address to Master node block  */
+				nid = nid_of_node(page);
+				f2fs_get_node_info(sbi, nid, &ni);
+
+				mn->atm_addrs[afs->commit_file_count++] = ni.blk_addr;
+
+				f2fs_put_page(mpage, 1);
 				f2fs_put_page(page, 0);
+
 				marked = true;
 				break;
 			}
@@ -2957,7 +2956,7 @@ int f2fs_build_master_node(struct atomic_file_set *afs)
 	struct page *mpage;
 	nid_t new_nid;
 
-	inode = afs->last_file->file->f_inode;
+	inode = afs->last_file->inode;
 	sbi = F2FS_I_SB(inode);
 
 	if (!f2fs_alloc_nid(sbi, &new_nid))
@@ -2986,7 +2985,7 @@ int f2fs_truncate_master_node(struct atomic_file_set *afs)
 	struct dnode_of_data dn;
 	struct page *mpage;
 
-	inode = afs->last_file->file->f_inode;
+	inode = afs->last_file->inode;
 	sbi = F2FS_I_SB(inode);
 
 	mpage = f2fs_get_node_page(sbi, afs->master_nid);

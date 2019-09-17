@@ -647,7 +647,7 @@ struct atomic_file_set {
 struct atomic_file {
 	struct list_head list;
 	struct list_head revoke_list;
-	struct file *file;
+	struct inode *inode;
 	struct atomic_file_set *afs; 	/* pointer to atomic file set that including this file */
 	bool last_file;
 };
@@ -2733,6 +2733,7 @@ int f2fs_precache_extents(struct inode *inode);
 long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 long f2fs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 int f2fs_pin_file_control(struct inode *inode, bool inc);
+extern int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg);
 
 /*
  * inode.c
