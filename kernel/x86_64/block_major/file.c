@@ -1554,6 +1554,8 @@ out:
 	return ret;
 }
 
+static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg);
+
 static int f2fs_release_file(struct inode *inode, struct file *filp)
 {
 	/*
@@ -1564,6 +1566,13 @@ static int f2fs_release_file(struct inode *inode, struct file *filp)
 			atomic_read(&inode->i_writecount) != 1)
 		return 0;
 
+	if (f2fs_is_added_file(inode)) {
+		struct f2fs_inode_info *fi = F2FS_I(inode);
+
+		if (fi->af->afs->owner == current) {
+			f2fs_ioc_end_atomic_file_set(filp, (unsigned long) fi->af->afs);
+		}
+	}
 	/* some remained atomic pages should discarded */
 	if (f2fs_is_atomic_file(inode))
 		f2fs_drop_inmem_pages(inode);
@@ -1767,11 +1776,10 @@ out:
 	return ret;
 }
 
-static int f2fs_ioc_commit_atomic_write(struct file *filp)
+static int f2fs_ioc_commit_atomic_write(struct file *filp, unsigned long arg)
 {
 	struct inode *inode = file_inode(filp);
 	int ret;
-	//long long start[3] = {0,}, end[3] = {0,};
 
 	if (!inode_owner_or_capable(inode))
 		return -EACCES;
@@ -1791,24 +1799,20 @@ static int f2fs_ioc_commit_atomic_write(struct file *filp)
 
 	if (f2fs_is_atomic_file(inode) || f2fs_is_added_file(inode)) {
 		struct f2fs_sb_info *sbi = F2FS_I_SB(inode);;
-		//start[0] = get_current_utime();
+
 		ret = f2fs_commit_inmem_pages(inode);
 		if (ret)
 			goto err_out;
-		//end[0] = get_current_utime();
 
-		//start[1] = get_current_utime();
 		ret = f2fs_do_sync_file(filp, 0, LLONG_MAX, 0, true);
 		if (!ret) {
 			clear_inode_flag(inode, FI_ATOMIC_FILE);
 			F2FS_I(inode)->i_gc_failures[GC_FAILURE_ATOMIC] = 0;
 			stat_dec_atomic_write(inode);
 		}
-		//end[1] = get_current_utime();
 
-		//start[2] = get_current_utime();
-		ret = f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
-		//end[2] = get_current_utime();
+		if (arg)
+			ret = f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
 	} else {
 		ret = f2fs_do_sync_file(filp, 0, LLONG_MAX, 1, false);
 	}
@@ -1820,8 +1824,7 @@ err_out:
 	up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
 	inode_unlock(inode);
 	mnt_drop_write_file(filp);
-	/*for (i = 0; i<3; i++)
-		printk("[JATA DBG] (%s) %d: %lld\n", __func__, i, end[i] - start[i]);*/
+
 	return ret;
 }
 
@@ -2960,6 +2963,7 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		if (!afs)
 			return -ENOMEM;
 		*(struct atomic_file_set**)arg = afs;
+		afs->owner = current;
 		INIT_LIST_HEAD(&afs->afs_list);
 		init_rwsem(&afs->afs_rwsem);
 		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
@@ -3129,8 +3133,6 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 	return 0;
 }
 
-static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg);
-
 /*
  * This function is called when F2FS_IOC_COMMIT_ATOMIC_FILE_SET command is
  * called. It flush all files in atomic file set. The detail steps to flush
@@ -3214,7 +3216,7 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
 		f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
 	}
-	
+
 	mpage = f2fs_get_node_page(sbi, afs->master_nid);
 	set_fsync_mark(mpage, 1);
 	set_page_dirty(mpage);
@@ -3225,15 +3227,309 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		goto out;
 	}
 
-	blk_start_plug(&plug);
 	if (____write_node_page(mpage, true, NULL, &wbc, true, FS_NODE_IO)) {
 		printk("[JATA DBG] (%s) master node page write fails\n", __func__);
 		unlock_page(mpage);
 	}
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+
+out:
+	f2fs_put_page(mpage, 0);
+	afs->commit_file_count = 0;
+
+	/* checkpoint should be unblocked now. */
+
+	up_write(&afs->afs_rwsem);
+
+	if (current->is_atomic && current->afs == afs) {
+		f2fs_ioc_end_atomic_file_set(NULL, (unsigned long)afs);
+		current->is_atomic = false;
+	}
+
+	return 0;
+}
+
+static int f2fs_ioc_commit_atomic_file_set_noflush(struct file *filp, unsigned long arg)
+{
+	struct f2fs_sb_info *sbi;
+	struct atomic_file_set *afs;
+	struct atomic_file *af_elem, *tmp;
+	struct inode *inode;
+	struct page *mpage;
+	struct list_head *head;
+	struct blk_plug plug;
+	int ret = 0;
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_ALL,
+		.nr_to_write = LONG_MAX,
+		.range_start = 0,
+		.range_end = LLONG_MAX,
+		.for_reclaim = 0,
+	};
+
+	afs = (struct atomic_file_set*)arg;
+
+	if (!afs && current->is_atomic)
+		afs = current->afs;
+
+	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+		return -ENOENT;
+
+	sbi = F2FS_I_SB(afs->last_file->inode);
+
+	head = &afs->afs_list;
+
+	down_write(&afs->afs_rwsem);
+
+	/* checkpoint should be blocked before below code block */
+
+	if (!afs->master_nid) {
+		ret = f2fs_build_master_node(afs);
+		if (ret)
+			return ret;
+	}
+
+	blk_start_plug(&plug);
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
+
+		inode_lock(inode);
+		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		f2fs_commit_inmem_pages_atomic_file_set(inode, &af_elem->revoke_list);
+		up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		inode_unlock(inode);
+	}
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		inode = af_elem->inode;
+		f2fs_fsync_node_pages(sbi, inode, &wbc, true);
+	}
+
 	blk_finish_plug(&plug);
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
+		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
+		f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
+	}
+
+	mpage = f2fs_get_node_page(sbi, afs->master_nid);
+	set_fsync_mark(mpage, 1);
+	set_page_dirty(mpage);
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+
+	if (!clear_page_dirty_for_io(mpage)) {
+		printk("[JATA DBG] (%s) clear master node page fails\n", __func__);
+		goto out;
+	}
+
+	if (____write_node_page(mpage, false, NULL, &wbc, true, FS_NODE_IO)) {
+		printk("[JATA DBG] (%s) master node page write fails\n", __func__);
+		unlock_page(mpage);
+	}
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+
+	f2fs_issue_flush(sbi, afs->last_file->inode->i_ino);
+out:
+	f2fs_put_page(mpage, 0);
+	afs->commit_file_count = 0;
+
+	/* checkpoint should be unblocked now. */
+
+	up_write(&afs->afs_rwsem);
+
+	if (current->is_atomic && current->afs == afs) {
+		f2fs_ioc_end_atomic_file_set(NULL, (unsigned long)afs);
+		current->is_atomic = false;
+	}
+
+	return 0;
+}
+
+static int f2fs_ioc_commit_atomic_file_set_nodma(struct file *filp, unsigned long arg)
+{
+	struct f2fs_sb_info *sbi;
+	struct atomic_file_set *afs;
+	struct atomic_file *af_elem, *tmp;
+	struct inode *inode;
+	struct page *mpage;
+	struct list_head *head;
+	struct blk_plug plug;
+	int ret = 0;
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_ALL,
+		.nr_to_write = LONG_MAX,
+		.range_start = 0,
+		.range_end = LLONG_MAX,
+		.for_reclaim = 0,
+	};
+
+	afs = (struct atomic_file_set*)arg;
+
+	if (!afs && current->is_atomic)
+		afs = current->afs;
+
+	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+		return -ENOENT;
+
+	sbi = F2FS_I_SB(afs->last_file->inode);
+
+	head = &afs->afs_list;
+
+	down_write(&afs->afs_rwsem);
+
+	/* checkpoint should be blocked before below code block */
+
+	if (!afs->master_nid) {
+		ret = f2fs_build_master_node(afs);
+		if (ret)
+			return ret;
+	}
+
+	blk_start_plug(&plug);
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
+
+		inode_lock(inode);
+		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		f2fs_commit_inmem_pages_atomic_file_set(inode, &af_elem->revoke_list);
+		up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		inode_unlock(inode);
+	}
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		inode = af_elem->inode;
+		f2fs_fsync_node_pages(sbi, inode, &wbc, true);
+	}
+
+	blk_finish_plug(&plug);
+
+	mpage = f2fs_get_node_page(sbi, afs->master_nid);
+	set_fsync_mark(mpage, 1);
+	set_page_dirty(mpage);
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+
+	if (!clear_page_dirty_for_io(mpage)) {
+		printk("[JATA DBG] (%s) clear master node page fails\n", __func__);
+		goto out;
+	}
+
+	if (____write_node_page(mpage, true, NULL, &wbc, true, FS_NODE_IO)) {
+		printk("[JATA DBG] (%s) master node page write fails\n", __func__);
+		unlock_page(mpage);
+	}
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
+		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
+		f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
+	}
+
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+out:
+	f2fs_put_page(mpage, 0);
+	afs->commit_file_count = 0;
+
+	/* checkpoint should be unblocked now. */
+
+	up_write(&afs->afs_rwsem);
+
+	if (current->is_atomic && current->afs == afs) {
+		f2fs_ioc_end_atomic_file_set(NULL, (unsigned long)afs);
+		current->is_atomic = false;
+	}
+
+	return 0;
+}
+
+static int f2fs_ioc_commit_atomic_file_set_noflushdma(struct file *filp, unsigned long arg)
+{
+	struct f2fs_sb_info *sbi;
+	struct atomic_file_set *afs;
+	struct atomic_file *af_elem, *tmp;
+	struct inode *inode;
+	struct page *mpage;
+	struct list_head *head;
+	struct blk_plug plug;
+	int ret = 0;
+	struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_ALL,
+		.nr_to_write = LONG_MAX,
+		.range_start = 0,
+		.range_end = LLONG_MAX,
+		.for_reclaim = 0,
+	};
+
+	afs = (struct atomic_file_set*)arg;
+
+	if (!afs && current->is_atomic)
+		afs = current->afs;
+
+	if (!afs || le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+		return -ENOENT;
+
+	sbi = F2FS_I_SB(afs->last_file->inode);
+
+	head = &afs->afs_list;
+
+	down_write(&afs->afs_rwsem);
+
+	/* checkpoint should be blocked before below code block */
+
+	if (!afs->master_nid) {
+		ret = f2fs_build_master_node(afs);
+		if (ret)
+			return ret;
+	}
+
+	blk_start_plug(&plug);
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
+
+		inode_lock(inode);
+		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		f2fs_commit_inmem_pages_atomic_file_set(inode, &af_elem->revoke_list);
+		up_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		inode_unlock(inode);
+	}
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		inode = af_elem->inode;
+		f2fs_fsync_node_pages(sbi, inode, &wbc, true);
+	}
+
+	blk_finish_plug(&plug);
+
+	mpage = f2fs_get_node_page(sbi, afs->master_nid);
+	set_fsync_mark(mpage, 1);
+	set_page_dirty(mpage);
+	f2fs_wait_on_page_writeback(mpage, NODE, true);
+
+	if (!clear_page_dirty_for_io(mpage)) {
+		printk("[JATA DBG] (%s) clear master node page fails\n", __func__);
+		goto out;
+	}
+
+	if (____write_node_page(mpage, false, NULL, &wbc, true, FS_NODE_IO)) {
+		printk("[JATA DBG] (%s) master node page write fails\n", __func__);
+		unlock_page(mpage);
+	}
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
+		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
+		f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
+	}
 
 	f2fs_wait_on_page_writeback(mpage, NODE, true);
 
+	f2fs_issue_flush(sbi, afs->last_file->inode->i_ino);
 out:
 	f2fs_put_page(mpage, 0);
 	afs->commit_file_count = 0;
@@ -3307,7 +3603,7 @@ long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case F2FS_IOC_START_ATOMIC_WRITE:
 		return f2fs_ioc_start_atomic_write(filp);
 	case F2FS_IOC_COMMIT_ATOMIC_WRITE:
-		return f2fs_ioc_commit_atomic_write(filp);
+		return f2fs_ioc_commit_atomic_write(filp, arg);
 	case F2FS_IOC_START_VOLATILE_WRITE:
 		return f2fs_ioc_start_volatile_write(filp);
 	case F2FS_IOC_RELEASE_VOLATILE_WRITE:
@@ -3356,6 +3652,12 @@ long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return f2fs_ioc_commit_atomic_file_set(filp, arg);
 	case F2FS_IOC_END_ATOMIC_FILE_SET:
 		return f2fs_ioc_end_atomic_file_set(filp, arg);
+	case F2FS_IOC_COMMIT_NOFLUSH_ATOMIC_FILE_SET:
+		return f2fs_ioc_commit_atomic_file_set_noflush(filp, arg);
+	case F2FS_IOC_COMMIT_NODMA_ATOMIC_FILE_SET:
+		return f2fs_ioc_commit_atomic_file_set_nodma(filp, arg);
+	case F2FS_IOC_COMMIT_NOFLUSHDMA_ATOMIC_FILE_SET:
+		return f2fs_ioc_commit_atomic_file_set_noflushdma(filp, arg);
 	default:
 		return -ENOTTY;
 	}

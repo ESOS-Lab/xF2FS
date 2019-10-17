@@ -386,6 +386,10 @@ static inline bool __has_cursum_space(struct f2fs_journal *journal,
 #define F2FS_IOC_COMMIT_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 18)
 #define F2FS_IOC_END_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 19)
 
+#define F2FS_IOC_COMMIT_NOFLUSH_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 20)
+#define F2FS_IOC_COMMIT_NODMA_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 21)
+#define F2FS_IOC_COMMIT_NOFLUSHDMA_ATOMIC_FILE_SET	_IO(F2FS_IOCTL_MAGIC, 22)
+
 #define F2FS_IOC_SET_ENCRYPTION_POLICY	FS_IOC_SET_ENCRYPTION_POLICY
 #define F2FS_IOC_GET_ENCRYPTION_POLICY	FS_IOC_GET_ENCRYPTION_POLICY
 #define F2FS_IOC_GET_ENCRYPTION_PWSALT	FS_IOC_GET_ENCRYPTION_PWSALT
@@ -636,6 +640,7 @@ enum {
 #define F2FS_MUFIT_MAGIC	0xF2F52011
 
 struct atomic_file_set {
+	struct task_struct *owner;
 	struct list_head afs_list;	/* atomic file list */
 	struct rw_semaphore afs_rwsem;	/* semaphore for afs */
 	unsigned int commit_file_count;	/* commit count in atomic file set */
