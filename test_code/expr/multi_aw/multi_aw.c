@@ -18,7 +18,7 @@
 
 #define MAX_THREADS	8
 #define MAX_IO_SIZE_1K	128
-#define MAX_TOTAL_SIZE_1K	128*1024
+#define MAX_TOTAL_SIZE_1K	100*1024*1024
 #define MAX_STR		200
 
 static long long get_current_utime(void)
@@ -114,6 +114,9 @@ int main(int argc, char *argv[])
 			goto out;
 		}
 	}
+
+	sync();
+	system("echo 3 > /proc/sys/vm/drop_caches");
 
 	/* Start atomic write */
 	ret = ioctl(fds[0], F2FS_IOC_START_ATOMIC_FILE_SET, afg_key);

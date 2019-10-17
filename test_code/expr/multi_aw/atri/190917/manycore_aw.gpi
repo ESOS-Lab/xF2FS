@@ -1,0 +1,15 @@
+set terminal postscript eps enhanced monochrome size 12cm,6cm linewidth 3 font "Helvetica, 22"
+
+set key right bottom
+
+set yrange [0:1.7]
+set ylabel "Latency (sec)"
+
+set xrange [0:10.5]
+set xtics 1
+set xlabel "# of Files"
+
+set output "manycore_aw.eps"
+
+plot 'manycore_aw.dat' using 1:($2/1000) title "single" with line lt 1,\
+	'' using 1:($3/1000) title "multi" with line lt 2

@@ -1,3 +1,0 @@
-MODE	INS		UPD		DEL
-OFF
-1	

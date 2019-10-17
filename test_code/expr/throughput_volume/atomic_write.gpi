@@ -1,0 +1,15 @@
+unset title
+set terminal postscript eps enhanced monochrome size 10cm, 5cm font "Helvetical, 22"
+set style data histogram
+set style histogram clustered gap 1 title offset 0, -1
+set style fill pattern border -1
+set boxwidth 1 absolute
+set key enhanced Right top horizontal reverse nobox samplen 2 width -.7 height .1 spacing 1.5 font "Helvetical, 22"
+
+set yrange [0:1.3]
+set grid ytics
+
+set ylabel "Normalized factor" font "Helvetical, 24"
+
+set output "atomic_write.eps"
+plot 'atomic_write.dat' u "TxFS":xtic(1) fill pattern 0 lt 1 t 'TxFS', '' u "F2FS":xtic(1) fill pattern 1 lt 1 t 'F2FS'
