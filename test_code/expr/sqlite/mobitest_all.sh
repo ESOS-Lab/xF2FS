@@ -13,23 +13,22 @@
 # -13: F2FS Durable Atomic
 
 # Device
-# - /dev/sdb: SAMSUNG 850 PRO 256 GB
-# - /dev/sdc: SAMSUNG SM843TN 256 GB
-# - /dev/nvme0n1: INTEL Optane
-# - /dev/nvme1n1: SAMSUNG 960PRO 512 GB
+# - /dev/nvme0n1: SAMSUNG 960PRO 512 GB
+# - /dev/nvme1n1: INTEL Optane
 
 OUTPUT_DIR="result_`date "+%Y%m%d%H%M"`"
-DEV=(/dev/sdb /dev/nvme0n1 /dev/nvme1n1)
+DEV=(/dev/nvme0n1 /dev/nvme1n1)
 MNT=/mnt
-#MODE=(2 3 6 7 8 9)
-MODE=(9 13)
+#MODE=(2 3 6 7 8 9 10 11 12 13)
+#MODE=(2 3 6 8)
+MODE=(6)
 ITER=5
 OPERATIONS=(0)
 NTX=10000
 #NDB=(3 5 7 9)
 NDB=(1 3 5 7 9)
 #FS=(ext4 f2fs)
-FS=(f2fs)
+FS=(ext4)
 
 run_operations()
 {

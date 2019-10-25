@@ -1,10 +1,10 @@
 
 #CROSS=arm-linux-gnueabi-
 
-EXENAME = mobibench_datomic
+EXENAME = mobibench_MFAW
 
 SRCS = mobibench.c \
-	  sqlite3_datomic.c
+	  sqlite3_MFAW.c
 
 INSTALL = install
 

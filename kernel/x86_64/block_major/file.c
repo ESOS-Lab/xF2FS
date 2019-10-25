@@ -2943,13 +2943,14 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	struct inode *inode;
 	bool allocated = false;
 
-	if (!filp || !arg /* || if the *arg is user address, FAIL. */)
+	if (!filp || !arg/* || if the *arg is user address, FAIL. */)
 		return -ENOENT;
 
 	inode = filp->f_mapping->host;
 	fi = F2FS_I(inode);
 	sbi = F2FS_I_SB(inode);
-	afs = *(struct atomic_file_set**)arg;
+	//afs = *(struct atomic_file_set**)arg;
+	copy_from_user((void*)&afs, (void*)arg, sizeof(struct atomic_file_set*));
 
 	if (f2fs_is_added_file(inode))
 		return -ENOENT;
@@ -2962,7 +2963,8 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
 		if (!afs)
 			return -ENOMEM;
-		*(struct atomic_file_set**)arg = afs;
+		//*(struct atomic_file_set**)arg = afs;
+		copy_to_user((void*)arg, (void*)&afs, sizeof(arg));
 		afs->owner = current;
 		INIT_LIST_HEAD(&afs->afs_list);
 		init_rwsem(&afs->afs_rwsem);
