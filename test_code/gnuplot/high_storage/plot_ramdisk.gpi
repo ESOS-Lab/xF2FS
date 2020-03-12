@@ -1,0 +1,19 @@
+unset title
+set terminal postscript eps enhanced monochrome size 20cm, 8cm rounded font "Helvetical, 46"
+set style data histogram
+set style histogram clustered gap 1 title offset 0, -1
+set style fill pattern border -1
+set boxwidth 1 absolute
+set key enhanced inside right top horizontal nobox samplen 2 width 2 height .1 spacing 1.5 font "Helvetical, 26"
+
+set bmargin 3
+set xrange [-0.7:4.7]
+set xtics  nomirror font "Helvetical, 46"
+set yrange [0:20000]
+set ytics autofreq 4000 nomirror offset 0.5 font "Helvetical, 46"
+set grid ytics
+
+set ylabel "Transaction/sec." offset 2 font "Helvetical, 46"
+
+set output "img/tps_ramdisk_insert_4core.eps"
+plot 'ramdisk.dat'u "exF2FS":xtic(1) fill pattern 0 lt 1 t "exF2FS", ''u "TxFS":xtic(1) fill pattern 1 lt 1 t "TxFS"

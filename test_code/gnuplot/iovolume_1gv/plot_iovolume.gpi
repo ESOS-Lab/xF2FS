@@ -1,0 +1,27 @@
+unset title
+set terminal postscript eps enhanced monochrome size 7cm, 6cm rounded font "Helvetical, 20"
+set style data histogram
+#set style histogram title offset 0, 10
+set style fill pattern border -1
+set style histogram title offset 0,-1.5 gap 1
+set boxwidth 1 absolute
+#set key enhanced outside Left top horizontal reverse nobox samplen 2 width -.7 height .1 spacing 1.5 font "Helvetical, 17"
+#set key enhanced inside top right vertical
+#set key outside top center horizontal samplen 2
+set key inside top right vertical samplen 1
+
+set bmargin 4
+set xrange [0:4]
+#set xtics  nomirror font "Helvetical, 18"
+set yrange [0:13]
+#set ytics autofreq 20 nomirror font "Helvetical, 22"
+set grid ytics
+
+#set ylabel "Transaction/sec." font "Helvetical, 24"
+set ylabel "IO Volume(GB)"
+
+set output "img/iovolume.eps"
+
+plot newhistogram "IO Size" at 0.5, \
+	'iovolume.dat' u "QTxFS":xtic(1) fill pattern 0 lt 1, \
+	            '' u "exF2FS":xtic(1) fill pattern 1 lt 1

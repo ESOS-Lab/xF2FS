@@ -1,0 +1,34 @@
+unset title
+set terminal postscript eps enhanced monochrome size 15cm, 8cm rounded font "Helvetical, 24"
+set style data histogram
+#set style histogram title offset 0, 10
+set style fill pattern border -1
+set style histogram title offset 0,-1.5
+set boxwidth 1 absolute
+#set key enhanced outside Left top horizontal reverse nobox samplen 2 width -.7 height .1 spacing 1.5 font "Helvetical, 17"
+#set key enhanced inside top right vertical
+set key outside top center horizontal samplen 2
+
+set bmargin 4
+#set xrange [0:1.9]
+#set xtics  nomirror font "Helvetical, 18"
+#set yrange [0:17500]
+#set ytics autofreq 20 nomirror font "Helvetical, 22"
+set grid ytics
+
+#set ylabel "Transaction/sec." font "Helvetical, 24"
+set ylabel "Transaction/sec."
+
+set output "img/oper_nor.eps"
+plot newhistogram "3.18.22" at 0.5, \
+	'oper_nor.dat' u "318EP":xtic(1) fill pattern 0 lt 1 t 'EXT4 PERSIST', \
+	'' u "318FP":xtic(1) fill pattern 1 lt 1 t 'F2FS PERSIST', \
+	'' u "318EW":xtic(1) fill pattern 2 lt 1 t 'EXT4 WAL', \
+	'' u "318FW":xtic(1) fill pattern 3 lt 1 t 'F2FS WAL', \
+	'' u "318TX":xtic(1) fill pattern 4 lt 1 t 'TxFS',\
+newhistogram "4.18.0" at 3, \
+	'oper_nor.dat' u "418EP":xtic(1) fill pattern 0 lt 1 notitle, \
+	'' u "418FP":xtic(1) fill pattern 1 lt 1 notitle, \
+	'' u "418EW":xtic(1) fill pattern 2 lt 1 notitle, \
+	'' u "418FW":xtic(1) fill pattern 3 lt 1 notitle, \
+	'' u '418EX':xtic(1) fill pattern 5 lt 1 t 'exF2FS'

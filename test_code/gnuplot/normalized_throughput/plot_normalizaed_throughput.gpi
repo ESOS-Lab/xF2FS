@@ -1,0 +1,16 @@
+set terminal eps enhanced monochrome rounded font "Helvetical, 18" size 8cm,6cm
+
+#set key outside top center horizontal
+set key inside bottom left vertical samplen 1
+
+set yrange [0:1.1]
+set xrange [-0.2:3.2]
+
+set ylabel "Normalized Perf" offset 1.5
+set xlabel "# of Files"
+
+set output "img/normalized_throughput.eps"
+
+plot 'normalized_throughput.dat' using "850EP":xtic(1) with linespoints lt 1 lw 2 pointtype 2 title "PERSIST",\
+                              '' using "850QT":xtic(1) with linespoints lt 1 lw 2 pointtype 5 title "QTxFS",\
+                              '' using "850XF":xtic(1) with linespoints lt 1 lw 2 pointtype 6 title "exF2FS"

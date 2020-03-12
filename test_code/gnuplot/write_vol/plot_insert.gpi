@@ -1,0 +1,26 @@
+unset title
+set terminal postscript eps enhanced monochrome size 24cm,8cm rounded font "Helvetical,32"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5 gap 1
+set boxwidth 1 absolute
+set key outside top center horizontal samplen 1
+
+set bmargin 3
+set grid ytics
+
+set xrange [-0.5:3.5]
+
+set ytics font "Helvetical,32"
+set ylabel "Write Volume/Tx(KB)" font "Helvetical,38"
+set yrange [0:800]
+set ytics autofreq 200
+
+set output "img/insert_write_vol.eps"
+plot newhistogram "# of Files",\
+	'oper_insert.dat' u "850EP":xtic(1) fill pattern 1 lt 1 t 'EXT4 PERSIST', \
+	               '' u "850EL":xtic(1) fill pattern 2 lt 1 t 'EXT4 LS-MVBT', \
+	               '' u "850FP":xtic(1) fill pattern 3 lt 1 t 'F2FS PERSIST', \
+	               '' u "850FL":xtic(1) fill pattern 5 lt 1 t 'F2FS LS-MVBT',\
+	               '' u "850QT":xtic(1) fill pattern 7 lt 1 t 'QTxFS',\
+	               '' u "850XF":xtic(1) fill pattern 8 lt 1 t 'exF2FS',\

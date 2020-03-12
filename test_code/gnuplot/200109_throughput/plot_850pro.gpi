@@ -1,0 +1,21 @@
+unset title
+set terminal postscript eps enhanced monochrome size 20cm, 8cm rounded font "Helvetical, 46"
+set style data histogram
+set style histogram clustered gap 1 title offset 0, -1
+set style fill pattern border -1
+set boxwidth 1 absolute
+#set key enhanced outside center top horizontal nobox samplen 2 width 2 height .1 spacing 1.5 font "Helvetical, 36"
+set key enhanced outside center top horizontal nobox font "Helvetical, 36"
+
+set bmargin 3
+set xrange [-0.7:4.7]
+set xtics nomirror font "Helvetical, 46"
+set yrange [0:430]
+set ytics autofreq 100 nomirror offset 0.5 font "Helvetical, 46"
+set grid ytics
+
+set ylabel "Tx/sec." offset 2 font "Helvetical, 46"
+
+set output "img/tps_850pro_insert_4core.eps"
+plot '850pro.dat' u "exF2FS":xtic(1) fill pattern 0 lt 1 t "exF2FS", \
+               '' u "QTxFS":xtic(1) fill pattern 1 lt 1 t "QTxFS"

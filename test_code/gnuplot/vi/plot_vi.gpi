@@ -1,0 +1,23 @@
+unset title
+set terminal postscript eps enhanced monochrome size 8cm, 6cm rounded font "Helvetical, 20"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-1.5 gap 0.9
+set key inside top center horizontal samplen 2
+#set boxwidth 3 absolute
+
+set bmargin 4
+#set xrange [0:1.9]
+set xrange [0:3.2]
+set yrange [0:160]
+set grid ytics
+
+set ylabel "Update latency (ms)"
+
+set output "img/vi.eps"
+
+plot newhistogram "# of Pages" at 0.5, \
+	'vi.dat' u "EXT4":xtic(1) fill pattern 0 lt 1, \
+	      '' u "F2FS":xtic(1) fill pattern 1 lt 1, \
+	      '' u "QTxFS":xtic(1) fill pattern 2 lt 1, \
+	      '' u "xF2FS":xtic(1) fill pattern 3 lt 1

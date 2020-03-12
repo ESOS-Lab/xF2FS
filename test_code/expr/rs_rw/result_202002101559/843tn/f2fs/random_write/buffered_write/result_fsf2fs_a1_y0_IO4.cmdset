@@ -1,0 +1,1 @@
+./mobibench -p /mnt -f 1048576 -r 4 -a 1 -y 0

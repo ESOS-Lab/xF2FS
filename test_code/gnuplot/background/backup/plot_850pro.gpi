@@ -1,0 +1,40 @@
+unset title
+set terminal postscript eps enhanced monochrome size 12cm, 8cm rounded font "Helvetical, 26"
+#set terminal postscript eps enhanced monochrome rounded
+set style data histogram
+set style histogram clustered gap 1 title offset 0, -1
+set style fill pattern border -1
+set boxwidth 1 absolute
+#set key enhanced inside right top horizontal nobox samplen 2 width 2 height .1 spacing 1.5 font "Helvetical, 26"
+#set key enhanced inside right top vertical nobox samplen 2 width 2 height .1 spacing 1.5 font "Helvetical, 26"
+set key outside top center horizontal font "Helvetical, 24"
+
+set bmargin 3
+#set xrange [-0.5:0.5]
+#set xtics nomirror font "Helvetical, 46"
+#set xtics ("EXT4 PERSIST" 1, "EXT4 WAL" 2, "F2FS PERSIST" 3, "F2FS WAL" 4, "F2FS Atomic" 5, "F2FS Durable Atomic" 6) rotate by -45
+#unset xtics
+unset xtics
+set xtics ("PERSIST" 0.1)
+set yrange [0:450]
+set ytics autofreq 100
+set grid ytics
+
+set ylabel "Transaction/sec." offset 1
+
+set output "img/effect_of_datomic.eps"
+#plot newhistogram '850pro.dat' u "EP":xtic(1) fill pattern 0 lt 1 t "EXT4 PERSIST",\
+#                            '' u "N1":xtic(1) fill pattern 0 lt 1 notitle,\
+#                            '' u "FP":xtic(1) fill pattern 2 lt 1 t "F2FS PERSIST",\
+#                            '' u "N3":xtic(1) fill pattern 0 lt 1 notitle,\
+#                            '' u "FA":xtic(1) fill pattern 4 lt 1 t "F2FS Atomic",\
+#                            '' u "N5":xtic(1) fill pattern 0 lt 1 notitle,\
+#                            '' u "FD":xtic(1) fill pattern 5 lt 1 t "F2FS DAtomic"
+plot newhistogram "EXT4" at 0.1,\
+     '850pro.dat' u "EP":xtic(1) fill pattern 0 lt 1,\
+     newhistogram "F2FS" at 1,\
+               '' u "FP":xtic(1) fill pattern 2 lt 1,\
+               '' u "N3":xtic(1) fill pattern 0 lt 1 notitle,\
+               '' u "FA":xtic(1) fill pattern 4 lt 1,\
+               '' u "N5":xtic(1) fill pattern 0 lt 1 notitle,\
+               '' u "FD":xtic(1) fill pattern 5 lt 1

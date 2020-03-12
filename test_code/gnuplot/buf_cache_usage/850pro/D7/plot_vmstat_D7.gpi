@@ -1,0 +1,18 @@
+#set terminal eps font "Helvetica, 24"
+set terminal postscript eps enhanced monochrome font "Helvetical, 24" size 15cm,6cm
+
+set key outside top center horizontal
+
+set style line 1 linetype 2 linewidth 2
+
+set yrange [0:600]
+#set ytics autofreq 0.02
+set ylabel "Used Memory (MB)"
+
+#set xtics autofreq 2000
+set xlabel "Time (sec)"
+
+set output "img/vmstat_D7.eps"
+
+plot "vmstat_D7.dat" using ($2/1000) with line lt 1 lw 3 t "exF2FS",\
+                  "" using ($1/1000) with line lt 2 lw 3 t "QTxFS"

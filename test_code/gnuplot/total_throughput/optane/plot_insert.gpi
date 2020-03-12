@@ -1,0 +1,27 @@
+unset title
+set terminal postscript eps enhanced monochrome size 24cm,8cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5
+set boxwidth 1 absolute
+#set key outside top center horizontal samplen 1
+unset key
+
+set bmargin 3
+set grid ytics
+
+set ylabel "Transactions/sec (K)" font "Helvetical,32"
+
+set ytics ("2" 2000, "4" 4000, "6" 6000, "8" 8000, "10" 10000) font "Helvetical,32"
+set yrange [0:9000]
+
+set output "img/throughput_insert_optane.eps"
+plot 'oper_insert.dat' u "OPTEP":xtic(1) axes x1y1 fill pattern 0 lt 1 notitle, \
+	            '' u "OPTEW":xtic(1) axes x1y1 fill pattern 1 lt 1 notitle, \
+	            '' u "OPTEL":xtic(1) axes x1y1 fill pattern 2 lt 1 notitle, \
+	            '' u "OPTFP":xtic(1) axes x1y1 fill pattern 3 lt 1 notitle, \
+	            '' u "OPTFW":xtic(1) axes x1y1 fill pattern 4 lt 1 notitle,\
+	            '' u "OPTFL":xtic(1) axes x1y1 fill pattern 5 lt 1 notitle,\
+	            '' u "OPTAT":xtic(1) axes x1y1 fill pattern 6 lt 1 notitle,\
+	            '' u "OPTQT":xtic(1) axes x1y1 fill pattern 7 lt 1 notitle,\
+	            '' u "OPTXF":xtic(1) axes x1y1 fill pattern 8 lt 1 notitle,\

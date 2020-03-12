@@ -1,0 +1,22 @@
+unset title
+set terminal postscript eps enhanced monochrome font "Helvetical, 24" size 15cm,6cm
+
+set style data histogram
+set style fill pattern border
+
+set style histogram title offset 0,-1.5
+
+set key inside left top
+
+set bmargin 4
+
+set ylabel "Read Volume (KByte)"
+
+set output "img/read_volume.eps"
+
+input_file="read_volume.dat"
+
+plot newhistogram "850 PRO", input_file using "850exF2FS":xtic(1) fill pattern 0 linetype 1 title "exF2FS",\
+                                     "" using "850QTxFS":xtic(1) fill pattern 1 linetype 1 title "QTxFS",\
+     newhistogram "OPTANE",  input_file using "OPTexF2FS":xtic(1) fill pattern 0 linetype 1 notitle,\
+                                     "" using "OPTQTxFS":xtic(1) fill pattern 1 linetype 1 notitle
