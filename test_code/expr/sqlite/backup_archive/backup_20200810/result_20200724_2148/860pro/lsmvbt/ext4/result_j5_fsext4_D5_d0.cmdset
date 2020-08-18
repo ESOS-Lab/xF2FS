@@ -1,0 +1,1 @@
+./bin/mobibench_lsmvbt -p /mnt -d 0 -n 1000 -j 5 -s 2 -T 1 -D 5

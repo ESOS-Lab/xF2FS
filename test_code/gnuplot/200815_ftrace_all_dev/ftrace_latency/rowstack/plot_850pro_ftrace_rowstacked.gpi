@@ -1,0 +1,30 @@
+unset title
+set terminal postscript eps enhanced monochrome size 8cm,6cm rounded font "Helvetical,28"
+set style data histogram
+#set style fill pattern border -1
+set style histogram rowstacked
+#set key outside top center horizontal samplen 2
+set key inside top center horizontal samplen 2
+set boxwidth 0.7
+
+set bmargin 3
+set grid ytics
+
+#set ytics ("0.5" 500, "1" 1000, "1.5" 1500, "2" 2000, "2.5" 2500, "3" 3000, "3.5" 3500, "4" 4000, "4.5" 4500, "5" 5000)
+set ytics ("1" 1000, "2" 2000, "3" 3000, "4" 4000, "5" 5000, "6" 6000, "7" 7000, "8" 8000)
+set ylabel "Latency (K usec)" font "Helvetical,32"
+set yrange [0:7500]
+
+#set xtics ("Hdr" 1, "Crt" 2, "Dis" 3, "Wait" 4, "Com" 5, "Fin" 6) rotate by -45
+#set xtics rotate by -45
+set xrange [-0.7:1.7]
+
+
+set output "img/ftrace_850pro_latency_rowstacked.eps"
+plot 'ftrace_850pro_latency.dat' u "Hdr":xtic(1) fill pattern 0 lt 1, \
+	               '' u "Crt":xtic(1) fill pattern 1 lt 1, \
+	               '' u "Dis":xtic(1) fill pattern 2 lt 1, \
+	               '' u "Wait":xtic(1) fill pattern 3 lt 1, \
+	               '' u "Com":xtic(1) fill pattern 4 lt 1, \
+	               '' u "Fin":xtic(1) fill pattern 5 lt 1, \
+	               '' u "Etc":xtic(1) fill pattern 6 lt 1

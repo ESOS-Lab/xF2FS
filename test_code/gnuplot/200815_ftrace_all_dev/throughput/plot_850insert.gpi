@@ -1,0 +1,26 @@
+unset title
+set terminal postscript eps enhanced monochrome size 14cm,6cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5
+set boxwidth 1 absolute
+set key inside top right horizontal samplen 1 font "Helvetical,26"
+
+set bmargin 3
+set grid ytics
+
+set ytics 100 font "Helvetical,32"
+set ylabel "Tx/sec" offset 1 font "Helvetical,32"
+set yrange [0:450]
+
+set output "img/throughput_insert_850PRO.eps"
+plot newhistogram 'without Ftrace' at 0.1, \
+	'oper_insert.dat' u "850XF":xtic(1) fill pattern 0 lt 1 t 'exF2FS', \
+	               '' u "850XFF":xtic(1) fill pattern 1 lt 1 t 'exF2FS with per-group page list', \
+	               '' u "850QT":xtic(1) fill pattern 2 lt 1 t 'QTxFS with sync()', \
+	               '' u "850QTF":xtic(1) fill pattern 3 lt 1 t 'QTxFS with fsync()', \
+newhistogram 'with Ftrace' at 4.5, \
+	'oper_insert.dat' u "F850XF":xtic(1) fill pattern 0 lt 1 notitle, \
+	               '' u "F850XFF":xtic(1) fill pattern 1 lt 1 notitle, \
+	               '' u "F850QT":xtic(1) fill pattern 2 lt 1 notitle, \
+	               '' u "F850QTF":xtic(1) fill pattern 3 lt 1 notitle

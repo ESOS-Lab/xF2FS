@@ -1,10 +1,10 @@
 
 #CROSS=arm-linux-gnueabi-
 
-EXENAME = mobibench_datomic
+EXENAME = mobibench_QTxFS
 
-SRCS = mobibench.c \
-	  sqlite3_datomic.c
+SRCS = mobibench_QTxFS.c \
+	  sqlite3_TxFS.c
 
 INSTALL = install
 

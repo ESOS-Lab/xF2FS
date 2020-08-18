@@ -75,6 +75,8 @@ int main(int argc, char *argv[])
 				i--;
 	}
 
+	sleep(5);
+
 	start = get_current_utime();
 	
 	/* Excute expr */

@@ -1,0 +1,36 @@
+unset title
+set terminal postscript eps enhanced monochrome size 24cm,8cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5
+set boxwidth 1 absolute
+set key outside top center horizontal samplen 1
+
+set bmargin 3
+set grid ytics
+
+set ytics font "Helvetical,32"
+set ylabel "Tx/sec (850 PRO)" offset 1 font "Helvetical,32"
+set yrange [0:380]
+
+
+set y2label "K Tx/sec. (Optane)" offset -1 font "Helvetical,32"
+set y2tics ("2" 2000, "4" 4000, "6" 6000, "8" 8000, "10" 10000)
+set y2range [0:10000]
+
+set output "img/throughput_insert_optane.eps"
+plot newhistogram '850 PRO' at 0.1,\
+	'oper_insert.dat' u "850EP":xtic(1) axes x1y1 fill pattern 0 lt 1 t 'EXT4 PERSIST', \
+	               '' u "850EL":xtic(1) axes x1y1 fill pattern 2 lt 1 t 'EXT4 LS-MVBT', \
+	               '' u "850FP":xtic(1) axes x1y1 fill pattern 3 lt 1 t 'F2FS PERSIST', \
+	               '' u "850FL":xtic(1) axes x1y1 fill pattern 5 lt 1 t 'F2FS LS-MVBT',\
+	               '' u "850QT":xtic(1) axes x1y1 fill pattern 7 lt 1 t 'QTxFS',\
+	               '' u "850XF":xtic(1) axes x1y1 fill pattern 8 lt 1 t 'exF2FS',\
+     newhistogram 'Optane' at 4.5,\
+	'oper_insert.dat' u "OPTEP":xtic(1) axes x1y2 fill pattern 0 lt 1 notitle, \
+	               '' u "OPTEL":xtic(1) axes x1y2 fill pattern 2 lt 1 notitle, \
+	               '' u "OPTFP":xtic(1) axes x1y2 fill pattern 3 lt 1 notitle, \
+	               '' u "OPTFL":xtic(1) axes x1y2 fill pattern 5 lt 1 notitle,\
+	               '' u "OPTQT":xtic(1) axes x1y2 fill pattern 7 lt 1 notitle,\
+	               '' u "OPTXF":xtic(1) axes x1y2 fill pattern 8 lt 1 notitle,\
+

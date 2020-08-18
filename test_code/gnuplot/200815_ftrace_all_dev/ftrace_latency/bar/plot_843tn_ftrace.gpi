@@ -1,0 +1,19 @@
+unset title
+set terminal postscript eps enhanced monochrome size 8cm,6cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set key inside top left vertical samplen 1
+
+set bmargin 3
+set grid ytics
+
+#set ytics ("0.5" 500, "1" 1000, "1.5" 1500, "2" 2000, "2.5" 2500, "3" 3000)
+set ylabel "Latency (usec)" offset 1 font "Helvetical,32"
+#set yrange [0:3000]
+
+#set xtics ("Hdr" 1, "Crt" 2, "Dis" 3, "Wait" 4, "Com" 5, "Fin" 6) rotate by -45
+set xtics rotate by -45
+
+set output "img/ftrace_843tn_latency.eps"
+plot 'ftrace_843tn_latency.dat' u "exF2FS":xtic(1) fill pattern 0 lt 1, \
+	               '' u "QTxFS":xtic(1) fill pattern 2 lt 1

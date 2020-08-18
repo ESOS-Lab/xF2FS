@@ -1,0 +1,27 @@
+unset title
+set terminal postscript eps enhanced monochrome size 14cm,6cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5
+set boxwidth 1 absolute
+set key inside top right horizontal samplen 1 font "Helvetical,28"
+
+set bmargin 3
+set grid ytics
+
+set ytics font "Helvetical,32"
+set ylabel "K Tx/sec" font "Helvetical,32"
+set yrange [0:4500]
+set ytics ("1" 1000, "2" 2000, "3" 3000, "4" 4000)
+
+set output "img/throughput_insert_843TN.eps"
+plot newhistogram 'without Ftrace' at 0.1, \
+	'oper_insert.dat' u "843XF":xtic(1) fill pattern 0 lt 1 t 'exF2FS', \
+	               '' u "843XFF":xtic(1) fill pattern 1 lt 1 t 'exF2FS with per-group page list', \
+	               '' u "843QT":xtic(1) fill pattern 2 lt 1 t 'QTxFS with sync()', \
+	               '' u "843QTF":xtic(1) fill pattern 3 lt 1 t 'QTxFS with fsync()', \
+newhistogram 'with Ftrace' at 4.5, \
+	'oper_insert.dat' u "F843XF":xtic(1) fill pattern 0 lt 1 notitle, \
+	               '' u "F843XFF":xtic(1) fill pattern 1 lt 1 notitle, \
+	               '' u "F843QT":xtic(1) fill pattern 2 lt 1 notitle, \
+	               '' u "F843QTF":xtic(1) fill pattern 3 lt 1 notitle

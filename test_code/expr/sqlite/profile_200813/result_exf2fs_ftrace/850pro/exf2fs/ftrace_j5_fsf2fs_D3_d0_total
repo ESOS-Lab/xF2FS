@@ -1,0 +1,61 @@
+ 7)               |            f2fs_ioc_commit_atomic_file_set.isra.44 [f2fs]() {
+ 7)               |              down_write() {
+ 7)   0.390 us    |              }
+ 7)   0.030 us    |              blk_start_plug();
+ 7)               |              down_write() {
+ 7)   0.382 us    |              }
+ 7)               |              down_write() {
+ 7)   0.386 us    |              }
+ 7)               |              f2fs_commit_inmem_pages_atomic_file_set [f2fs]() {
+ 7)   50.151 us   |              }
+ 7)   0.029 us    |              up_write();
+ 7)   0.019 us    |              up_write();
+ 7)               |              down_write() {
+ 7)   0.391 us    |              }
+ 7)               |              down_write() {
+ 7)   0.381 us    |              }
+ 7)               |              f2fs_commit_inmem_pages_atomic_file_set [f2fs]() {
+ 7)   45.108 us   |              }
+ 7)   0.024 us    |              up_write();
+ 7)   0.019 us    |              up_write();
+ 7)               |              down_write() {
+ 7)   0.404 us    |              }
+ 7)               |              down_write() {
+ 7)   0.386 us    |              }
+ 7)               |              f2fs_commit_inmem_pages_atomic_file_set [f2fs]() {
+ 7)   44.452 us   |              }
+ 7)   0.019 us    |              up_write();
+ 7)   0.019 us    |              up_write();
+ 7)               |              f2fs_fsync_node_pages [f2fs]() {
+ 7)   44.608 us   |              }
+ 7)               |              f2fs_fsync_node_pages [f2fs]() {
+ 7)   36.934 us   |              }
+ 7)               |              f2fs_fsync_node_pages [f2fs]() {
+ 7)   36.542 us   |              }
+ 7)               |              blk_finish_plug() {
+ 7)   16.962 us   |              }
+ 7)               |              ____revoke_inmem_pages [f2fs]() {
+ 7)   150.435 us  |              }
+ 7)               |              f2fs_wait_on_node_pages_writeback [f2fs]() {
+ 7)   0.623 us    |              }
+ 7)               |              ____revoke_inmem_pages [f2fs]() {
+ 7)   2.119 us    |              }
+ 7)               |              f2fs_wait_on_node_pages_writeback [f2fs]() {
+ 7)   0.578 us    |              }
+ 7)               |              ____revoke_inmem_pages [f2fs]() {
+ 7)   2.148 us    |              }
+ 7)               |              f2fs_wait_on_node_pages_writeback [f2fs]() {
+ 7)   0.571 us    |              }
+ 7)               |              f2fs_get_node_page [f2fs]() {
+ 7)   1.441 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   3.624 us    |              }
+ 7)   0.020 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.020 us    |              }
+ 7)               |              ____write_node_page [f2fs]() {
+ 7)   40.381 us   |              }
+ 7)               |              f2fs_wait_on_page_writeback [f2fs]() {
+ 7)   2298.292 us |              }
+ 7)   0.050 us    |              up_write();
+ 7)   2785.079 us |            }

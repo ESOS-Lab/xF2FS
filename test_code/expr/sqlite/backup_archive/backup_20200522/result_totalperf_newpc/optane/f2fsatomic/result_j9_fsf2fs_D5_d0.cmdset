@@ -1,0 +1,1 @@
+./bin/mobibench_atomic -p /mnt -d 0 -n 10000 -j 9 -s 2 -T 1 -D 5

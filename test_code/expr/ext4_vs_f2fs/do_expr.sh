@@ -5,21 +5,27 @@ EXEC_BIN="./expr"
 #DEV=(/dev/sdb /dev/nvme0n1)
 DEV=(/dev/sdb)
 MNT="/mnt"
-TOTAL_SIZE=`bc <<< "1024*128"`	# 1 MB
-IO_SIZE=`bc <<< "4096*2"`
+TOTAL_SIZE=$((1 * 1024 * 1024))		# 1 MB
+IO_SIZE=$((12 * 1024))
 N_IO=10
-IS_ATOMIC=(0 1)
-FS=(f2fs)
+IS_ATOMIC=(0)
+#FS=(ext4 qtxfs f2fs)
+FS=(ext4)
 
 
-for fs in ${FS[@]}
+for dev in ${DEV[@]}
 do
-	for dev in ${DEV[@]}
+	for fs in ${FS[@]}
 	do
 		echo "./mk${fs}.sh $dev $MNT"
-		#./mk${fs}.sh $dev $MNT
+		./mk${fs}.sh $dev $MNT
+		echo "=== ${dev}, ${fs} Workload Start ==="
 		case $fs in
 			ext4)
+				echo "${EXEC_BIN} ${MNT} ${TOTAL_SIZE} ${IO_SIZE} ${N_IO} 0"
+				${EXEC_BIN} ${MNT} ${TOTAL_SIZE} ${IO_SIZE} ${N_IO} 0
+				;;
+			qtxfs)
 				echo "${EXEC_BIN} ${MNT} ${TOTAL_SIZE} ${IO_SIZE} ${N_IO} 0"
 				${EXEC_BIN} ${MNT} ${TOTAL_SIZE} ${IO_SIZE} ${N_IO} 0
 				;;
@@ -32,5 +38,6 @@ do
 				done
 				;;
 		esac
+		echo "=== ${dev}, ${fs} Workload End ==="
 	done
 done

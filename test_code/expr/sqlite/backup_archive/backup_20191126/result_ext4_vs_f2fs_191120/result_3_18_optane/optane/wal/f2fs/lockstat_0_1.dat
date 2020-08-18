@@ -1,0 +1,6 @@
+lock_stat version 0.4
+*WARNING* lock debugging disabled!! - possibly due to a lockdep warning
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                              class name    con-bounces    contentions   waittime-min   waittime-max waittime-total   waittime-avg    acq-bounces   acquisitions   holdtime-min   holdtime-max holdtime-total   holdtime-avg
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+

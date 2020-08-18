@@ -1,0 +1,29 @@
+unset title
+set terminal postscript eps enhanced monochrome size 24cm,8cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5
+set boxwidth 1 absolute
+set key outside top right horizontal samplen 1 font "Helvetical,24"
+
+set bmargin 3
+set grid ytics
+
+set xrange [-0.5:4.55]
+set xlabel "# of DBs"
+
+set ytics ("0" 0, "1" 100, "2" 200, "3" 300, "4" 400, "5" 500, "6" 600, "7" 700, "8" 800) font "Helvetical,32"
+#set ylabel "Tx/sec (10^2)" offset 1 font "Helvetical,32"
+set ylabel "Tx/sec (10^2)" font "Helvetical,32"
+set yrange [0:850]
+
+set output "img/throughput_insert_850pro.eps"
+plot 'oper_insert.dat' u "EP":xtic(1) fill pattern 0 lt 1 t 'EXT4 PERSIST', \
+	            '' u "EW":xtic(1) fill pattern 1 lt 1 t 'EXT4 WAL', \
+	            '' u "EL":xtic(1) fill pattern 2 lt 1 t 'EXT4 LS-MVBT', \
+	            '' u "FP":xtic(1) fill pattern 3 lt 1 t 'F2FS PERSIST', \
+	            '' u "FW":xtic(1) fill pattern 4 lt 1 t 'F2FS WAL',\
+	            '' u "FL":xtic(1) fill pattern 5 lt 1 t 'F2FS LS-MVBT',\
+	            '' u "FD":xtic(1) fill pattern 7 lt 1 t 'F2FS DAtomic',\
+	            '' u "QT":xtic(1) fill pattern 7 lt 1 t 'QTxFS',\
+	            '' u "XF":xtic(1) fill pattern 8 lt 1 t 'exF2FS'

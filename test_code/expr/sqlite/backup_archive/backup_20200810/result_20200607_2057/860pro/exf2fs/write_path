@@ -1,0 +1,120 @@
+ 5)               |              blk_finish_plug() {
+ 5)               |                blk_flush_plug_list() {
+ 5)   0.021 us    |                  _raw_spin_lock_irq();
+ 5)               |                  __elv_add_request() {
+ 5)               |                    elv_attempt_insert_merge() {
+ 5)   0.021 us    |                      elv_rqhash_find();
+ 5)   0.214 us    |                    }
+ 5)   0.031 us    |                    elv_rqhash_add();
+ 5)               |                    cfq_insert_request() {
+ 5)   0.021 us    |                      cfq_init_prio_data.isra.95();
+ 5)   0.036 us    |                      ktime_get();
+ 5)               |                      cfq_add_rq_rb() {
+ 5)   0.038 us    |                        elv_rb_add();
+ 5)   0.048 us    |                        cfq_prio_tree_add();
+ 5)   0.446 us    |                      }
+ 5)               |                      __cfq_update_io_thinktime() {
+ 5)   0.032 us    |                        ktime_get();
+ 5)   0.222 us    |                      }
+ 5)               |                      __cfq_update_io_thinktime() {
+ 5)   0.031 us    |                        ktime_get();
+ 5)   0.224 us    |                      }
+ 5)   1.807 us    |                    }
+ 5)   2.603 us    |                  }
+ 5)               |                  queue_unplugged() {
+ 5)               |                    __blk_run_queue() {
+ 5)               |                      scsi_request_fn() {
+ 5)               |                        blk_peek_request() {
+ 5)               |                          cfq_dispatch_requests() {
+ 5)   0.034 us    |                            ktime_get();
+ 5)   0.035 us    |                            ktime_get();
+ 5)   0.026 us    |                            cfq_should_idle();
+ 5)               |                            cfq_dispatch_insert() {
+ 5)   0.066 us    |                              cfq_find_next_rq();
+ 5)               |                              cfq_remove_request() {
+ 5)   0.040 us    |                                elv_rb_del();
+ 5)   0.240 us    |                              }
+ 5)               |                              elv_dispatch_sort() {
+ 5)   0.026 us    |                                elv_rqhash_del.part.11();
+ 5)   0.241 us    |                              }
+ 5)   1.054 us    |                            }
+ 5)   1.918 us    |                          }
+ 5)   0.024 us    |                          cfq_activate_request();
+ 5)               |                          scsi_prep_fn() {
+ 5)   0.023 us    |                            scsi_prep_state_check();
+ 5)   0.037 us    |                            get_device();
+ 5)               |                            scsi_init_command() {
+ 5)   0.020 us    |                              scsi_req_init();
+ 5)   0.021 us    |                              init_timer_key();
+ 5)   0.030 us    |                              scsi_add_cmd_to_list();
+ 5)   0.636 us    |                            }
+ 5)               |                            scsi_setup_cmnd() {
+ 5)               |                              sd_init_command() {
+ 5)               |                                scsi_init_io() {
+ 5)               |                                  scsi_init_sgtable() {
+ 5)               |                                    mempool_alloc() {
+ 5)               |                                      mempool_alloc_slab() {
+ 5)               |                                        kmem_cache_alloc() {
+ 5)   0.020 us    |                                          should_failslab();
+ 5)   0.029 us    |                                          prefetch_freepointer();
+ 5)   0.412 us    |                                        }
+ 5)   0.588 us    |                                      }
+ 5)   0.805 us    |                                    }
+ 5)   0.064 us    |                                    blk_rq_map_sg();
+ 5)   1.318 us    |                                  }
+ 5)   1.531 us    |                                }
+ 5)   1.840 us    |                              }
+ 5)   2.077 us    |                            }
+ 5)   3.463 us    |                          }
+ 5)   6.037 us    |                        }
+ 5)               |                        blk_queue_start_tag() {
+ 5)               |                          blk_start_request() {
+ 5)   0.035 us    |                            ktime_get();
+ 5)   0.026 us    |                            wbt_issue();
+ 5)               |                            blk_add_timer() {
+ 5)   0.019 us    |                              round_jiffies_up();
+ 5)   0.020 us    |                              round_jiffies_up();
+ 5)   0.663 us    |                            }
+ 5)   1.244 us    |                          }
+ 5)   1.489 us    |                        }
+ 5)   0.041 us    |                        scsi_init_cmd_errh();
+ 5)               |                        scsi_dispatch_cmd() {
+ 5)   0.020 us    |                          scsi_log_send();
+ 5)               |                          ata_scsi_queuecmd() {
+ 5)   0.046 us    |                            _raw_spin_lock_irqsave();
+ 5)               |                            ata_scsi_find_dev() {
+ 5)               |                              __ata_scsi_find_dev() {
+ 5)   0.040 us    |                                ata_find_dev();
+ 5)   0.226 us    |                              }
+ 5)   0.417 us    |                            }
+ 5)               |                            ata_scsi_translate() {
+ 5)   0.032 us    |                              ata_qc_new_init();
+ 5)   0.019 us    |                              ata_sg_init();
+ 5)               |                              ata_scsi_rw_xlat() {
+ 5)   0.034 us    |                                ata_build_rw_tf();
+ 5)   0.252 us    |                              }
+ 5)               |                              ahci_pmp_qc_defer [libahci]() {
+ 5)   0.028 us    |                                ata_std_qc_defer();
+ 5)   0.213 us    |                              }
+ 5)               |                              ata_qc_issue() {
+ 5)   0.072 us    |                                swiotlb_map_sg_attrs();
+ 5)               |                                ahci_qc_prep [libahci]() {
+ 5)   0.037 us    |                                  ata_tf_to_fis();
+ 5)   0.253 us    |                                }
+ 5)   0.069 us    |                                ahci_qc_issue [libahci]();
+ 5)   1.111 us    |                              }
+ 5)   2.553 us    |                            }
+ 5)   0.024 us    |                            _raw_spin_unlock_irqrestore();
+ 5)   3.757 us    |                          }
+ 5)   4.183 us    |                        }
+ 5)   0.023 us    |                        _raw_spin_lock_irq();
+ 5)               |                        blk_peek_request() {
+ 5)               |                          cfq_dispatch_requests() {
+ 5)   0.039 us    |                            ktime_get();
+ 5)   0.220 us    |                          }
+ 5)   0.440 us    |                        }
+ 5) + 13.312 us   |                      }
+ 5) + 13.509 us   |                    }
+ 5) + 13.691 us   |                  }
+ 5) + 16.927 us   |                }
+ 5) + 17.118 us   |              }

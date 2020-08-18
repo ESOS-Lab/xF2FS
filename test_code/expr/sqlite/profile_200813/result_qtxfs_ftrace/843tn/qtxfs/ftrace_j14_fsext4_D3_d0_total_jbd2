@@ -1,0 +1,245 @@
+ 7)               |  jbd2_journal_commit_transaction() {
+ 7)   0.044 us    |    journal_tag_bytes();
+ 7)   0.025 us    |    _raw_write_lock();
+ 7)   0.025 us    |    _raw_spin_lock();
+ 7)   0.047 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_clean_checkpoint_list() {
+ 7)   1.638 us    |    }
+ 7)   0.323 us    |    jbd2_clear_buffer_revoked_flags();
+ 7)   0.272 us    |    jbd2_journal_switch_revoke_table();
+ 7)   0.037 us    |    ktime_get();
+ 7)               |    __wake_up() {
+ 7)   0.785 us    |    }
+ 7)               |    journal_submit_data_buffers() {
+ 7)   0.212 us    |    }
+ 7)   0.047 us    |    blk_start_plug();
+ 7)   0.395 us    |    jbd2_journal_write_revoke_records();
+ 7)   0.020 us    |    _raw_write_lock();
+ 7)               |    jbd2_journal_get_descriptor_buffer() {
+ 7)   17.441 us   |    }
+ 7)               |    jbd2_journal_next_log_block() {
+ 7)   2.696 us    |    }
+ 7)               |    jbd2_journal_write_metadata_buffer() {
+ 7)   2.282 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   0.259 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   1.802 us    |    }
+ 7)               |    jbd2_journal_next_log_block() {
+ 7)   3.001 us    |    }
+ 7)               |    jbd2_journal_write_metadata_buffer() {
+ 7)   2.128 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   0.219 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   1.724 us    |    }
+ 7)               |    jbd2_journal_next_log_block() {
+ 7)   2.672 us    |    }
+ 7)               |    jbd2_journal_write_metadata_buffer() {
+ 7)   2.252 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   0.220 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   1.656 us    |    }
+ 7)               |    jbd2_journal_next_log_block() {
+ 7)   2.663 us    |    }
+ 7)               |    jbd2_journal_write_metadata_buffer() {
+ 7)   2.184 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   0.220 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   1.639 us    |    }
+ 7)               |    jbd2_journal_next_log_block() {
+ 7)   2.792 us    |    }
+ 7)               |    jbd2_journal_write_metadata_buffer() {
+ 7)   2.128 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   0.212 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   1.669 us    |    }
+ 7)               |    jbd2_journal_next_log_block() {
+ 7)   2.680 us    |    }
+ 7)               |    jbd2_journal_write_metadata_buffer() {
+ 7)   2.237 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   0.235 us    |    }
+ 7)               |    crypto_shash_update() {
+ 7)   1.647 us    |    }
+ 7)               |    jbd2_descriptor_block_csum_set() {
+ 7)   1.839 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.203 us    |    }
+ 7)               |    submit_bh() {
+ 7)   14.070 us   |    }
+ 7)               |    _cond_resched() {
+ 7)   0.210 us    |    }
+ 7)               |    submit_bh() {
+ 7)   7.477 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.198 us    |    }
+ 7)               |    submit_bh() {
+ 7)   7.280 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.202 us    |    }
+ 7)               |    submit_bh() {
+ 7)   7.155 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.201 us    |    }
+ 7)               |    submit_bh() {
+ 7)   7.235 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.198 us    |    }
+ 7)               |    submit_bh() {
+ 7)   7.289 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.198 us    |    }
+ 7)               |    submit_bh() {
+ 7)   7.168 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.390 us    |    }
+ 7)   0.024 us    |    _raw_spin_lock();
+ 7)               |    jbd2_journal_get_log_tail() {
+ 7)   0.399 us    |    }
+ 7)   0.020 us    |    _raw_write_lock();
+ 7)               |    blk_finish_plug() {
+ 7)   23.646 us   |    }
+ 7)               |    _cond_resched() {
+ 7)   0.204 us    |    }
+ 7)               |    __wait_on_buffer() {
+ 7)   112.984 us  |    }
+ 7)               |    _cond_resched() {
+ 7)   0.221 us    |    }
+ 7)   0.022 us    |    __brelse();
+ 7)               |    free_buffer_head() {
+ 7)   0.255 us    |    }
+ 7)               |    jbd2_journal_file_buffer() {
+ 7)   0.748 us    |    }
+ 7)   0.031 us    |    __brelse();
+ 7)               |    _cond_resched() {
+ 7)   0.215 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.201 us    |    }
+ 7)   0.028 us    |    __brelse();
+ 7)               |    free_buffer_head() {
+ 7)   0.221 us    |    }
+ 7)               |    jbd2_journal_file_buffer() {
+ 7)   0.600 us    |    }
+ 7)   0.039 us    |    __brelse();
+ 7)               |    _cond_resched() {
+ 7)   0.203 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.211 us    |    }
+ 7)   0.022 us    |    __brelse();
+ 7)               |    free_buffer_head() {
+ 7)   0.211 us    |    }
+ 7)               |    jbd2_journal_file_buffer() {
+ 7)   0.617 us    |    }
+ 7)   0.021 us    |    __brelse();
+ 7)               |    _cond_resched() {
+ 7)   0.199 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.199 us    |    }
+ 7)   0.021 us    |    __brelse();
+ 7)               |    free_buffer_head() {
+ 7)   0.224 us    |    }
+ 7)               |    jbd2_journal_file_buffer() {
+ 7)   0.604 us    |    }
+ 7)   0.034 us    |    __brelse();
+ 7)               |    _cond_resched() {
+ 7)   0.213 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.198 us    |    }
+ 7)   0.023 us    |    __brelse();
+ 7)               |    free_buffer_head() {
+ 7)   0.221 us    |    }
+ 7)               |    jbd2_journal_file_buffer() {
+ 7)   0.580 us    |    }
+ 7)   0.022 us    |    __brelse();
+ 7)               |    _cond_resched() {
+ 7)   0.200 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.202 us    |    }
+ 7)   0.023 us    |    __brelse();
+ 7)               |    free_buffer_head() {
+ 7)   0.290 us    |    }
+ 7)               |    jbd2_journal_file_buffer() {
+ 7)   0.604 us    |    }
+ 7)   0.022 us    |    __brelse();
+ 7)               |    _cond_resched() {
+ 7)   0.199 us    |    }
+ 7)               |    _cond_resched() {
+ 7)   0.203 us    |    }
+ 7)   0.020 us    |    __brelse();
+ 7)   0.020 us    |    _raw_write_lock();
+ 7)               |    journal_submit_commit_record() {
+ 7)   59.200 us   |    }
+ 7)               |    _cond_resched() {
+ 7)   0.193 us    |    }
+ 7)               |    __wait_on_buffer() {
+ 7)   194.024 us  |    }
+ 7)   0.020 us    |    _raw_spin_lock();
+ 7)   0.020 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_remove_checkpoint() {
+ 7)   0.241 us    |    }
+ 7)               |    __jbd2_journal_insert_checkpoint() {
+ 7)   0.245 us    |    }
+ 7)               |    __jbd2_journal_refile_buffer() {
+ 7)   7.681 us    |    }
+ 7)   0.023 us    |    __brelse();
+ 7)   0.020 us    |    __cond_resched_lock();
+ 7)   0.022 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_remove_checkpoint() {
+ 7)   0.220 us    |    }
+ 7)               |    __jbd2_journal_insert_checkpoint() {
+ 7)   0.219 us    |    }
+ 7)               |    __jbd2_journal_refile_buffer() {
+ 7)   3.080 us    |    }
+ 7)   0.021 us    |    __brelse();
+ 7)   0.019 us    |    __cond_resched_lock();
+ 7)   0.021 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_remove_checkpoint() {
+ 7)   0.208 us    |    }
+ 7)               |    __jbd2_journal_insert_checkpoint() {
+ 7)   0.236 us    |    }
+ 7)               |    __jbd2_journal_refile_buffer() {
+ 7)   24.393 us   |    }
+ 7)   0.022 us    |    __brelse();
+ 7)   0.023 us    |    __cond_resched_lock();
+ 7)   0.020 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_remove_checkpoint() {
+ 7)   0.202 us    |    }
+ 7)               |    __jbd2_journal_insert_checkpoint() {
+ 7)   0.207 us    |    }
+ 7)               |    __jbd2_journal_refile_buffer() {
+ 7)   3.005 us    |    }
+ 7)   0.021 us    |    __brelse();
+ 7)   0.018 us    |    __cond_resched_lock();
+ 7)   0.022 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_remove_checkpoint() {
+ 7)   0.202 us    |    }
+ 7)               |    __jbd2_journal_insert_checkpoint() {
+ 7)   0.205 us    |    }
+ 7)               |    __jbd2_journal_refile_buffer() {
+ 7)   3.703 us    |    }
+ 7)   0.020 us    |    __brelse();
+ 7)   0.023 us    |    __cond_resched_lock();
+ 7)   0.020 us    |    _raw_spin_lock();
+ 7)               |    __jbd2_journal_remove_checkpoint() {
+ 7)   1.054 us    |    }
+ 7)               |    __jbd2_journal_insert_checkpoint() {
+ 7)   0.220 us    |    }
+ 7)               |    __jbd2_journal_refile_buffer() {
+ 7)   2.963 us    |    }
+ 7)   0.021 us    |    __brelse();
+ 7)   0.021 us    |    __cond_resched_lock();
+ 7)   0.019 us    |    _raw_write_lock();
+ 7)   0.019 us    |    _raw_spin_lock();
+ 7)   0.038 us    |    ktime_get();
+ 7)               |    ext4_journal_commit_callback() {
+ 7)   0.606 us    |    }
+ 7)   0.020 us    |    _raw_write_lock();
+ 7)   0.020 us    |    _raw_spin_lock();
+ 7)               |    __wake_up() {
+ 7)   7.430 us    |    }
+ 7)   0.019 us    |    _raw_spin_lock();
+ 7)   604.792 us  |  } /* jbd2_journal_commit_transaction */

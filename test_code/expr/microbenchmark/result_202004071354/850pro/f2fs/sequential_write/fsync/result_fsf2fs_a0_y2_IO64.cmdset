@@ -1,0 +1,1 @@
+./mobibench -p /mnt -f 64 -r 64 -a 0 -y 2

@@ -1,0 +1,27 @@
+unset title
+set terminal postscript eps enhanced monochrome size 14cm,6cm rounded font "Helvetical,28"
+set style data histogram
+set style fill pattern border -1
+set style histogram title offset 0,-0.5
+set boxwidth 1 absolute
+set key inside top right horizontal samplen 1 font "Helvetical,28"
+
+set bmargin 3
+set grid ytics
+
+set ytics font "Helvetical,32"
+set ylabel "K Tx/sec" offset 1 font "Helvetical,32"
+set yrange [0:11500]
+set ytics ("2" 2000, "4" 4000, "6" 6000, "8" 8000, "10" 10000)
+
+set output "img/throughput_insert_OPT.eps"
+plot newhistogram 'without Ftrace' at 0.1, \
+	'oper_insert.dat' u "OPTXF":xtic(1) fill pattern 0 lt 1 t 'exF2FS', \
+	               '' u "OPTXFF":xtic(1) fill pattern 1 lt 1 t 'exF2FS with per-group page list', \
+	               '' u "OPTQT":xtic(1) fill pattern 2 lt 1 t 'QTxFS with sync()', \
+	               '' u "OPTQTF":xtic(1) fill pattern 3 lt 1 t 'QTxFS with fsync()', \
+newhistogram 'with Ftrace' at 4.5, \
+	'oper_insert.dat' u "FOPTXF":xtic(1) fill pattern 0 lt 1 notitle, \
+	               '' u "FOPTXFF":xtic(1) fill pattern 1 lt 1 notitle, \
+	               '' u "FOPTQT":xtic(1) fill pattern 2 lt 1 notitle, \
+	               '' u "FOPTQTF":xtic(1) fill pattern 3 lt 1 notitle

@@ -1,0 +1,2585 @@
+ 2)               |  do_syscall_64() {
+ 2)               |    __ia32_sys_sync() {
+ 2)               |      ksys_sync() {
+ 2)               |        wakeup_flusher_threads() {
+ 2)               |          __wakeup_flusher_threads_bdi.part.63() {
+ 2)               |            wb_wakeup() {
+ 2)   0.020 us    |              _raw_spin_lock_bh();
+ 2)               |              mod_delayed_work_on() {
+ 2)               |                try_to_grab_pending() {
+ 2)               |                  del_timer() {
+ 2)               |                    lock_timer_base() {
+ 2)   0.030 us    |                      _raw_spin_lock_irqsave();
+ 2)   0.211 us    |                    }
+ 2)   0.046 us    |                    detach_if_pending();
+ 2)   0.024 us    |                    _raw_spin_unlock_irqrestore();
+ 2)   0.783 us    |                  }
+ 2)   1.062 us    |                }
+ 2)               |                __queue_delayed_work() {
+ 2)               |                  __queue_work() {
+ 2)   0.064 us    |                    get_work_pool();
+ 2)   0.034 us    |                    _raw_spin_lock();
+ 2)               |                    insert_work() {
+ 2)   0.021 us    |                      get_pwq.isra.21();
+ 2)               |                      wake_up_process() {
+ 2)               |                        try_to_wake_up() {
+ 2)   0.056 us    |                          _raw_spin_lock_irqsave();
+ 2)               |                          select_task_rq_fair() {
+ 2)               |                            select_idle_sibling() {
+ 2)   0.039 us    |                              available_idle_cpu();
+ 2)   0.236 us    |                            }
+ 2)   0.498 us    |                          }
+ 2)   0.020 us    |                          _raw_spin_lock();
+ 2)   0.030 us    |                          update_rq_clock();
+ 2)               |                          ttwu_do_activate() {
+ 2)               |                            activate_task() {
+ 2)               |                              enqueue_task_fair() {
+ 2)               |                                enqueue_entity() {
+ 2)   0.026 us    |                                  update_curr();
+ 2)               |                                  __update_load_avg_se.isra.41() {
+ 2)   0.025 us    |                                    decay_load();
+ 2)   0.020 us    |                                    decay_load();
+ 2)   0.020 us    |                                    decay_load();
+ 2)   0.021 us    |                                    __accumulate_pelt_segments();
+ 2)   0.791 us    |                                  }
+ 2)   0.020 us    |                                  decay_load();
+ 2)   0.021 us    |                                  decay_load();
+ 2)   0.020 us    |                                  decay_load();
+ 2)   0.021 us    |                                  __accumulate_pelt_segments();
+ 2)   0.018 us    |                                  update_cfs_group();
+ 2)   0.034 us    |                                  account_entity_enqueue();
+ 2)   0.030 us    |                                  __enqueue_entity();
+ 2)   2.615 us    |                                }
+ 2)   0.020 us    |                                hrtick_update();
+ 2)   3.009 us    |                              }
+ 2)   3.220 us    |                            }
+ 2)               |                            wq_worker_waking_up() {
+ 2)   0.043 us    |                              kthread_data();
+ 2)   0.280 us    |                            }
+ 2)               |                            ttwu_do_wakeup() {
+ 2)               |                              check_preempt_curr() {
+ 2)   0.040 us    |                                resched_curr();
+ 2)   0.302 us    |                              }
+ 2)   0.634 us    |                            }
+ 2)   4.649 us    |                          }
+ 2)   0.019 us    |                          ttwu_stat();
+ 2)   0.025 us    |                          _raw_spin_unlock_irqrestore();
+ 2)   6.550 us    |                        }
+ 2)   6.755 us    |                      }
+ 2)   7.134 us    |                    }
+ 2)   7.796 us    |                  }
+ 2)   8.009 us    |                }
+ 2)   9.438 us    |              }
+ 2)               |              _raw_spin_unlock_bh() {
+ 2)   0.041 us    |                __local_bh_enable_ip();
+ 2)   0.231 us    |              }
+ 2) + 10.211 us   |            }
+ 2) + 10.443 us   |          }
+ 2) + 11.207 us   |        }
+ 2)               |        iterate_supers() {
+ 2)   0.031 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.385 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.029 us    |            sync_inodes_sb();
+ 2)   0.227 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.209 us    |            }
+ 2)   0.394 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.202 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.388 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.023 us    |            sync_inodes_sb();
+ 2)   0.200 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.381 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.384 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.023 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.387 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.202 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.380 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.200 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.389 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.209 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.397 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.211 us    |            }
+ 2)   0.414 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.022 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.401 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.022 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.379 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.198 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.387 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.023 us    |            sync_inodes_sb();
+ 2)   0.198 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.382 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.197 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.207 us    |            }
+ 2)   0.398 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.381 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.200 us    |          }
+ 2)   0.022 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.383 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.023 us    |            sync_inodes_sb();
+ 2)   0.213 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.382 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.217 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.394 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.209 us    |            }
+ 2)   0.392 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.204 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.387 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.203 us    |          }
+ 2)   0.022 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.378 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.200 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.210 us    |            }
+ 2)   0.390 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.198 us    |          }
+ 2)   0.022 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.211 us    |            }
+ 2)   0.393 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)               |            sync_inodes_sb() {
+ 2)               |              bdi_split_work_to_wbs() {
+ 2)               |                _cond_resched() {
+ 2)   0.021 us    |                  rcu_all_qs();
+ 2)   0.202 us    |                }
+ 2)   0.416 us    |              }
+ 2)               |              wb_wait_for_completion() {
+ 2)               |                _cond_resched() {
+ 2)   0.020 us    |                  rcu_all_qs();
+ 2)   0.199 us    |                }
+ 2)   0.391 us    |              }
+ 2)               |              mutex_lock() {
+ 2)               |                _cond_resched() {
+ 2)   0.021 us    |                  rcu_all_qs();
+ 2)   0.202 us    |                }
+ 2)   0.392 us    |              }
+ 2)   0.025 us    |              _raw_spin_lock_irq();
+ 2)   0.020 us    |              mutex_unlock();
+ 2)   2.133 us    |            }
+ 2)   2.395 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.381 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.026 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.377 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.203 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.025 us    |          sync_inodes_one_sb();
+ 2)   0.017 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.207 us    |            }
+ 2)   0.386 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.382 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.200 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.383 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.211 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.388 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.202 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.385 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.198 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.389 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.394 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.198 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.383 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.203 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.391 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.379 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.018 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.388 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.197 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.381 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.023 us    |            sync_inodes_sb();
+ 2)   0.201 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.211 us    |            }
+ 2)   0.390 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.202 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.194 us    |            }
+ 2)   0.377 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.198 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.380 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.199 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.381 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.210 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.380 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.200 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.025 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.026 us    |          sync_inodes_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.025 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.024 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.024 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.020 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.020 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.397 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.020 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.391 us    |          }
+ 2)   0.020 us    |          sync_inodes_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.398 us    |          }
+ 2)   0.018 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.020 us    |          sync_inodes_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.390 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.385 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.391 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)               |            sync_inodes_sb() {
+ 2)               |              bdi_split_work_to_wbs() {
+ 2)               |                _cond_resched() {
+ 2)   0.020 us    |                  rcu_all_qs();
+ 2)   0.201 us    |                }
+ 2)   0.411 us    |              }
+ 2)               |              wb_wait_for_completion() {
+ 2)               |                _cond_resched() {
+ 2)   0.019 us    |                  rcu_all_qs();
+ 2)   0.199 us    |                }
+ 2)   0.390 us    |              }
+ 2)               |              mutex_lock() {
+ 2)               |                _cond_resched() {
+ 2)   0.020 us    |                  rcu_all_qs();
+ 2)   0.195 us    |                }
+ 2)   0.376 us    |              }
+ 2)   0.026 us    |              _raw_spin_lock_irq();
+ 2)   0.020 us    |              mutex_unlock();
+ 2)   2.096 us    |            }
+ 2)   2.287 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.026 us    |          sync_inodes_one_sb();
+ 2)   0.017 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.021 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.384 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.023 us    |            sync_inodes_sb();
+ 2)   0.212 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.465 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.022 us    |            sync_inodes_sb();
+ 2)   0.208 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.019 us    |          sync_inodes_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.209 us    |            }
+ 2)   0.387 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)   0.021 us    |            sync_inodes_sb();
+ 2)   0.220 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.020 us    |          sync_inodes_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.381 us    |          }
+ 2)               |          sync_inodes_one_sb() {
+ 2)               |            sync_inodes_sb() {
+ 2)               |              bdi_split_work_to_wbs() {
+ 2)               |                _cond_resched() {
+ 2)   0.020 us    |                  rcu_all_qs();
+ 2)   0.209 us    |                }
+ 2)   0.403 us    |              }
+ 2)               |              wb_wait_for_completion() {
+ 2)               |                _cond_resched() {
+ 2)   0.018 us    |                  rcu_all_qs();
+ 2)   0.202 us    |                }
+ 2)   0.387 us    |              }
+ 2)               |              mutex_lock() {
+ 2)               |                _cond_resched() {
+ 2)   0.019 us    |                  rcu_all_qs();
+ 2)   0.199 us    |                }
+ 2)   0.380 us    |              }
+ 2)   0.033 us    |              _raw_spin_lock_irq();
+ 2)   0.022 us    |              mutex_unlock();
+ 2)   2.070 us    |            }
+ 2)   2.258 us    |          }
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2) ! 115.900 us  |        }
+ 2)               |        iterate_supers() {
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.038 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.219 us    |            }
+ 2)   0.410 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.022 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.462 us    |          }
+ 2)   0.026 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.385 us    |          }
+ 2)   0.028 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.024 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.380 us    |          }
+ 2)   0.028 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.395 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.027 us    |          sync_fs_one_sb();
+ 2)   0.022 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.385 us    |          }
+ 2)   0.027 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.380 us    |          }
+ 2)   0.026 us    |          sync_fs_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.022 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.399 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.211 us    |            }
+ 2)   0.395 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.204 us    |            }
+ 2)   0.388 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.395 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.392 us    |          }
+ 2)   0.018 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.398 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.204 us    |            }
+ 2)   0.398 us    |          }
+ 2)   0.027 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.213 us    |            }
+ 2)   0.410 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.385 us    |          }
+ 2)   0.029 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.029 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.391 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.390 us    |          }
+ 2)               |          sync_fs_one_sb() {
+ 2)               |            ext4_sync_fs() {
+ 2)               |              flush_workqueue() {
+ 2)   0.021 us    |                __init_waitqueue_head();
+ 2)               |                mutex_lock() {
+ 2)               |                  _cond_resched() {
+ 2)   0.019 us    |                    rcu_all_qs();
+ 2)   0.198 us    |                  }
+ 2)   0.396 us    |                }
+ 2)               |                flush_workqueue_prep_pwqs() {
+ 2)   0.031 us    |                  _raw_spin_lock_irq();
+ 2)               |                  complete() {
+ 2)   0.022 us    |                    _raw_spin_lock_irqsave();
+ 2)               |                    __wake_up_locked() {
+ 2)   0.028 us    |                      __wake_up_common();
+ 2)   0.218 us    |                    }
+ 2)   0.027 us    |                    _raw_spin_unlock_irqrestore();
+ 2)   0.781 us    |                  }
+ 2)   1.194 us    |                }
+ 2)   0.021 us    |                mutex_unlock();
+ 2)   2.311 us    |              }
+ 2)   0.093 us    |              dquot_writeback_dquots();
+ 2)   0.043 us    |              _raw_read_lock();
+ 2)               |              jbd2_journal_start_commit() {
+ 2)   0.021 us    |                _raw_write_lock();
+ 2)   0.210 us    |              }
+ 2)   3.384 us    |            }
+ 2)   3.600 us    |          }
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.383 us    |          }
+ 2)   0.028 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2)   0.457 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.027 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.383 us    |          }
+ 2)   0.024 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.393 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.385 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.385 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.193 us    |            }
+ 2)   0.373 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.383 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.207 us    |            }
+ 2)   0.388 us    |          }
+ 2)   0.018 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.190 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.193 us    |            }
+ 2)   0.373 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.372 us    |          }
+ 2)   0.069 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.192 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.192 us    |            }
+ 2)   0.374 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.194 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.274 us    |            }
+ 2)   0.454 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.380 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.194 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.017 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.390 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.191 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.192 us    |            }
+ 2)   0.373 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.372 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.373 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.209 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.193 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.215 us    |            }
+ 2)   0.392 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2)   0.383 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.032 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.194 us    |            }
+ 2)   0.372 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.194 us    |            }
+ 2)   0.370 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.194 us    |            }
+ 2)   0.370 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.026 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.193 us    |            }
+ 2)   0.373 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.375 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.378 us    |          }
+ 2)               |          sync_fs_one_sb() {
+ 2)               |            ext4_sync_fs() {
+ 2)               |              flush_workqueue() {
+ 2)   0.019 us    |                __init_waitqueue_head();
+ 2)               |                mutex_lock() {
+ 2)               |                  _cond_resched() {
+ 2)   0.020 us    |                    rcu_all_qs();
+ 2)   0.199 us    |                  }
+ 2)   0.408 us    |                }
+ 2)               |                flush_workqueue_prep_pwqs() {
+ 2)   0.025 us    |                  _raw_spin_lock_irq();
+ 2)               |                  complete() {
+ 2)   0.022 us    |                    _raw_spin_lock_irqsave();
+ 2)               |                    __wake_up_locked() {
+ 2)   0.026 us    |                      __wake_up_common();
+ 2)   0.202 us    |                    }
+ 2)   0.026 us    |                    _raw_spin_unlock_irqrestore();
+ 2)   0.739 us    |                  }
+ 2)   1.121 us    |                }
+ 2)   0.019 us    |                mutex_unlock();
+ 2)   2.236 us    |              }
+ 2)               |              dquot_writeback_dquots() {
+ 2)   0.022 us    |                _raw_spin_lock_irqsave();
+ 2)   0.025 us    |                _raw_spin_unlock_irqrestore();
+ 2)   0.426 us    |              }
+ 2)   0.020 us    |              _raw_read_lock();
+ 2)               |              jbd2_journal_start_commit() {
+ 2)   0.020 us    |                _raw_write_lock();
+ 2)               |                __jbd2_log_start_commit() {
+ 2)               |                  __wake_up() {
+ 2)               |                    __wake_up_common_lock() {
+ 2)   0.025 us    |                      _raw_spin_lock_irqsave();
+ 2)               |                      __wake_up_common() {
+ 2)               |                        autoremove_wake_function() {
+ 2)               |                          default_wake_function() {
+ 2)               |                            try_to_wake_up() {
+ 2)   0.056 us    |                              _raw_spin_lock_irqsave();
+ 2)               |                              select_task_rq_fair() {
+ 2)               |                                select_idle_sibling() {
+ 2)   0.026 us    |                                  available_idle_cpu();
+ 2)   0.208 us    |                                }
+ 2)   0.416 us    |                              }
+ 2)   0.021 us    |                              _raw_spin_lock();
+ 2)   0.030 us    |                              update_rq_clock();
+ 2)               |                              ttwu_do_activate() {
+ 2)               |                                activate_task() {
+ 2)               |                                  enqueue_task_fair() {
+ 2)               |                                    enqueue_entity() {
+ 2)   0.028 us    |                                      update_curr();
+ 2)   0.047 us    |                                      __update_load_avg_se.isra.41();
+ 2)   0.020 us    |                                      update_cfs_group();
+ 2)   0.044 us    |                                      account_entity_enqueue();
+ 2)   0.039 us    |                                      __enqueue_entity();
+ 2)   1.235 us    |                                    }
+ 2)   0.020 us    |                                    hrtick_update();
+ 2)   1.625 us    |                                  }
+ 2)   1.823 us    |                                }
+ 2)               |                                ttwu_do_wakeup() {
+ 2)               |                                  check_preempt_curr() {
+ 2)   0.031 us    |                                    resched_curr();
+ 2)   0.248 us    |                                  }
+ 2)   0.500 us    |                                }
+ 2)   2.668 us    |                              }
+ 2)   0.021 us    |                              ttwu_stat();
+ 2)   0.024 us    |                              _raw_spin_unlock_irqrestore();
+ 2)   4.429 us    |                            }
+ 2)   4.611 us    |                          }
+ 2)   4.800 us    |                        }
+ 2)   5.077 us    |                      }
+ 2)   0.024 us    |                      _raw_spin_unlock_irqrestore();
+ 2)   5.631 us    |                    }
+ 2)   5.814 us    |                  }
+ 2)   6.026 us    |                }
+ 2)   6.389 us    |              }
+ 2)   9.756 us    |            }
+ 2)   9.957 us    |          }
+ 2)   0.021 us    |          up_read();
+ 2)   0.032 us    |          _raw_spin_lock();
+ 2) ! 112.041 us  |        }
+ 2)               |        iterate_supers() {
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.025 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2) + 22.201 us   |          }
+ 2)   0.023 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.396 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.389 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.278 us    |            }
+ 2)   0.472 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.388 us    |          }
+ 2)   0.022 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.387 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.396 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.211 us    |            }
+ 2)   0.393 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.389 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.389 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.394 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.022 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.205 us    |            }
+ 2)   0.387 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.392 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.383 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.389 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.383 us    |          }
+ 2)               |          sync_fs_one_sb() {
+ 2)               |            ext4_sync_fs() {
+ 2)               |              flush_workqueue() {
+ 2)   0.021 us    |                __init_waitqueue_head();
+ 2)               |                mutex_lock() {
+ 2)               |                  _cond_resched() {
+ 2)   0.022 us    |                    rcu_all_qs();
+ 2)   0.344 us    |                  }
+ 2)   0.530 us    |                }
+ 2)               |                flush_workqueue_prep_pwqs() {
+ 2)   0.021 us    |                  _raw_spin_lock_irq();
+ 2)               |                  complete() {
+ 2)   0.024 us    |                    _raw_spin_lock_irqsave();
+ 2)               |                    __wake_up_locked() {
+ 2)   0.026 us    |                      __wake_up_common();
+ 2)   0.206 us    |                    }
+ 2)   0.027 us    |                    _raw_spin_unlock_irqrestore();
+ 2)   0.756 us    |                  }
+ 2)   1.129 us    |                }
+ 2)   0.021 us    |                mutex_unlock();
+ 2)   2.374 us    |              }
+ 2)   0.036 us    |              dquot_writeback_dquots();
+ 2)   0.022 us    |              _raw_read_lock();
+ 2)               |              jbd2_trans_will_send_data_barrier() {
+ 2)   0.020 us    |                _raw_read_lock();
+ 2)   0.214 us    |              }
+ 2)               |              jbd2_journal_start_commit() {
+ 2)   0.021 us    |                _raw_write_lock();
+ 2)   0.203 us    |              }
+ 2)               |              blkdev_issue_flush() {
+ 2)               |                bio_alloc_bioset() {
+ 2)               |                  mempool_alloc() {
+ 2)               |                    _cond_resched() {
+ 2)   0.021 us    |                      rcu_all_qs();
+ 2)   0.202 us    |                    }
+ 2)               |                    mempool_alloc_slab() {
+ 2)               |                      kmem_cache_alloc() {
+ 2)   0.019 us    |                        should_failslab();
+ 2)   0.027 us    |                        prefetch_freepointer();
+ 2)   0.428 us    |                      }
+ 2)   0.615 us    |                    }
+ 2)   1.178 us    |                  }
+ 2)   0.027 us    |                  bio_init();
+ 2)   1.572 us    |                }
+ 2)               |                submit_bio_wait() {
+ 2)               |                  submit_bio() {
+ 2)               |                    generic_make_request() {
+ 2)   0.042 us    |                      blk_queue_enter();
+ 2)               |                      generic_make_request_checks() {
+ 2)               |                        _cond_resched() {
+ 2)   0.020 us    |                          rcu_all_qs();
+ 2)   0.199 us    |                        }
+ 2)   0.019 us    |                        should_fail_bio();
+ 2)   0.055 us    |                        __disk_get_part();
+ 2)   0.019 us    |                        kthread_blkcg();
+ 2)   0.025 us    |                        bio_associate_blkcg();
+ 2)   0.056 us    |                        blk_throtl_bio();
+ 2)   1.535 us    |                      }
+ 2)               |                      blk_queue_bio() {
+ 2)   0.027 us    |                        blk_queue_bounce();
+ 2)   0.057 us    |                        blk_queue_split();
+ 2)   0.020 us    |                        bio_integrity_prep();
+ 2)   0.020 us    |                        _raw_spin_lock_irq();
+ 2)   0.021 us    |                        wbt_wait();
+ 2)               |                        get_request() {
+ 2)               |                          elv_may_queue() {
+ 2)               |                            cfq_may_queue() {
+ 2)   0.049 us    |                              ioc_lookup_icq();
+ 2)   0.023 us    |                              cfq_init_prio_data.isra.95();
+ 2)   0.443 us    |                            }
+ 2)   0.650 us    |                          }
+ 2)               |                          mempool_alloc() {
+ 2)               |                            _cond_resched() {
+ 2)   0.020 us    |                              rcu_all_qs();
+ 2)   0.197 us    |                            }
+ 2)               |                            alloc_request_size() {
+ 2)               |                              __kmalloc_node() {
+ 2)   0.020 us    |                                kmalloc_slab();
+ 2)   0.019 us    |                                should_failslab();
+ 2)   0.444 us    |                              }
+ 2)               |                              scsi_old_init_rq() {
+ 2)               |                                kmem_cache_alloc_node() {
+ 2)   0.021 us    |                                  should_failslab();
+ 2)   0.028 us    |                                  prefetch_freepointer();
+ 2)   0.429 us    |                                }
+ 2)   0.692 us    |                              }
+ 2)   1.506 us    |                            }
+ 2)   2.078 us    |                          }
+ 2)               |                          blk_rq_init() {
+ 2)   0.062 us    |                            ktime_get();
+ 2)   0.317 us    |                          }
+ 2)   3.772 us    |                        }
+ 2)               |                        blk_init_request_from_bio() {
+ 2)   0.030 us    |                          blk_rq_bio_prep();
+ 2)   0.225 us    |                        }
+ 2)   0.020 us    |                        _raw_spin_lock_irq();
+ 2)               |                        blk_account_io_start() {
+ 2)   0.057 us    |                          disk_map_sector_rcu();
+ 2)   0.037 us    |                          part_round_stats();
+ 2)   0.028 us    |                          part_inc_in_flight();
+ 2)   0.657 us    |                        }
+ 2)               |                        __elv_add_request() {
+ 2)               |                          blk_insert_flush() {
+ 2)               |                            blk_flush_complete_seq() {
+ 2)               |                              blk_rq_init() {
+ 2)   0.037 us    |                                ktime_get();
+ 2)   0.251 us    |                              }
+ 2)   0.020 us    |                              blk_flush_queue_rq();
+ 2)   0.662 us    |                            }
+ 2)   0.889 us    |                          }
+ 2)   1.123 us    |                        }
+ 2)               |                        __blk_run_queue() {
+ 2)               |                          scsi_request_fn() {
+ 2)               |                            blk_peek_request() {
+ 2)               |                              scsi_prep_fn() {
+ 2)   0.025 us    |                                scsi_prep_state_check();
+ 2)   0.040 us    |                                get_device();
+ 2)               |                                scsi_init_command() {
+ 2)   0.023 us    |                                  scsi_req_init();
+ 2)   0.020 us    |                                  init_timer_key();
+ 2)   0.020 us    |                                  scsi_add_cmd_to_list();
+ 2)   0.629 us    |                                }
+ 2)               |                                scsi_setup_cmnd() {
+ 2)   0.021 us    |                                  sd_init_command();
+ 2)   0.250 us    |                                }
+ 2)   1.653 us    |                              }
+ 2)   1.879 us    |                            }
+ 2)               |                            blk_queue_start_tag() {
+ 2)               |                              blk_start_request() {
+ 2)   0.037 us    |                                ktime_get();
+ 2)   0.020 us    |                                wbt_issue();
+ 2)               |                                blk_add_timer() {
+ 2)   0.020 us    |                                  round_jiffies_up();
+ 2)   0.020 us    |                                  round_jiffies_up();
+ 2)   0.410 us    |                                }
+ 2)   0.976 us    |                              }
+ 2)   1.218 us    |                            }
+ 2)   0.040 us    |                            scsi_init_cmd_errh();
+ 2)               |                            scsi_dispatch_cmd() {
+ 2)   0.019 us    |                              scsi_log_send();
+ 2)               |                              ata_scsi_queuecmd() {
+ 2)   0.032 us    |                                _raw_spin_lock_irqsave();
+ 2)               |                                ata_scsi_find_dev() {
+ 2)               |                                  __ata_scsi_find_dev() {
+ 2)   0.028 us    |                                    ata_find_dev();
+ 2)   0.228 us    |                                  }
+ 2)   0.424 us    |                                }
+ 2)               |                                ata_scsi_translate() {
+ 2)   0.031 us    |                                  ata_qc_new_init();
+ 2)   0.021 us    |                                  ata_scsi_flush_xlat();
+ 2)               |                                  ahci_pmp_qc_defer [libahci]() {
+ 2)   0.028 us    |                                    ata_std_qc_defer();
+ 2)   0.224 us    |                                  }
+ 2)               |                                  ata_qc_issue() {
+ 2)               |                                    ahci_qc_prep [libahci]() {
+ 2)   0.041 us    |                                      ata_tf_to_fis();
+ 2)   0.279 us    |                                    }
+ 2)   0.034 us    |                                    ahci_qc_issue [libahci]();
+ 2)   0.790 us    |                                  }
+ 2)   1.876 us    |                                }
+ 2)   0.025 us    |                                _raw_spin_unlock_irqrestore();
+ 2)   3.086 us    |                              }
+ 2)   3.498 us    |                            }
+ 2)   0.021 us    |                            _raw_spin_lock_irq();
+ 2)   0.047 us    |                            blk_peek_request();
+ 2)   7.824 us    |                          }
+ 2)   8.031 us    |                        }
+ 2) + 15.909 us   |                      }
+ 2) + 18.085 us   |                    }
+ 2) + 18.291 us   |                  }
+ 2)               |                  wait_for_completion_io() {
+ 2)               |                    _cond_resched() {
+ 2)   0.020 us    |                      rcu_all_qs();
+ 2)   0.201 us    |                    }
+ 2)   0.021 us    |                    _raw_spin_lock_irq();
+ 2)               |                    io_schedule_timeout() {
+ 2)   0.027 us    |                      io_schedule_prepare();
+ 2)               |                      schedule_timeout() {
+ 2)               |                        schedule() {
+ 2)   0.023 us    |                          rcu_note_context_switch();
+ 2)   0.034 us    |                          _raw_spin_lock();
+ 2)   0.029 us    |                          update_rq_clock();
+ 2)               |                          deactivate_task() {
+ 2)               |                            dequeue_task_fair() {
+ 2)               |                              dequeue_entity() {
+ 2)               |                                update_curr() {
+ 2)   0.022 us    |                                  update_min_vruntime();
+ 2)   0.031 us    |                                  cpuacct_charge();
+ 2)               |                                  __cgroup_account_cputime() {
+ 2)   0.025 us    |                                    cgroup_rstat_updated();
+ 2)   0.219 us    |                                  }
+ 2)   0.851 us    |                                }
+ 2)               |                                __update_load_avg_se.isra.41() {
+ 2)   0.028 us    |                                  decay_load();
+ 2)   0.021 us    |                                  decay_load();
+ 2)   0.021 us    |                                  decay_load();
+ 2)   0.022 us    |                                  __accumulate_pelt_segments();
+ 2)   0.817 us    |                                }
+ 2)   0.022 us    |                                decay_load();
+ 2)   0.022 us    |                                decay_load();
+ 2)   0.021 us    |                                decay_load();
+ 2)   0.024 us    |                                __accumulate_pelt_segments();
+ 2)   0.022 us    |                                clear_buddies();
+ 2)   0.040 us    |                                account_entity_dequeue();
+ 2)   0.021 us    |                                update_cfs_group();
+ 2)   3.407 us    |                              }
+ 2)               |                              dequeue_entity() {
+ 2)               |                                update_curr() {
+ 2)   0.034 us    |                                  update_min_vruntime();
+ 2)   0.228 us    |                                }
+ 2)               |                                __update_load_avg_se.isra.41() {
+ 2)   0.022 us    |                                  decay_load();
+ 2)   0.021 us    |                                  decay_load();
+ 2)   0.020 us    |                                  decay_load();
+ 2)   0.021 us    |                                  __accumulate_pelt_segments();
+ 2)   0.792 us    |                                }
+ 2)   0.023 us    |                                decay_load();
+ 2)   0.021 us    |                                decay_load();
+ 2)   0.020 us    |                                decay_load();
+ 2)   0.023 us    |                                __accumulate_pelt_segments();
+ 2)   0.022 us    |                                clear_buddies();
+ 2)   0.028 us    |                                account_entity_dequeue();
+ 2)               |                                update_cfs_group() {
+ 2)   0.032 us    |                                  reweight_entity();
+ 2)   0.254 us    |                                }
+ 2)   2.927 us    |                              }
+ 2)   0.020 us    |                              hrtick_update();
+ 2)   6.908 us    |                            }
+ 2)   7.120 us    |                          }
+ 2)               |                          __delayacct_blkio_start() {
+ 2)   0.034 us    |                            ktime_get();
+ 2)   0.225 us    |                          }
+ 2)               |                          pick_next_task_fair() {
+ 2)   0.019 us    |                            __msecs_to_jiffies();
+ 2)   0.231 us    |                          }
+ 2)               |                          pick_next_task_idle() {
+ 2)               |                            put_prev_task_fair() {
+ 2)               |                              put_prev_entity() {
+ 2)   0.020 us    |                                check_cfs_rq_runtime();
+ 2)   0.211 us    |                              }
+ 2)               |                              put_prev_entity() {
+ 2)   0.020 us    |                                check_cfs_rq_runtime();
+ 2)   0.201 us    |                              }
+ 2)   0.769 us    |                            }
+ 2)   0.972 us    |                          }
+ 2) mobiben-16113  =>    <idle>-0   
+ 2)               |  switch_mm_irqs_off() {
+ 2)   0.102 us    |    load_new_mm_cr3();
+ 2)   0.359 us    |  }
+ 2)    <idle>-0    => mobiben-16113 
+ 2)   0.046 us    |                          finish_task_switch();
+ 2) + 59.186 us   |                        }
+ 2) + 59.396 us   |                      }
+ 2) + 59.788 us   |                    }
+ 2)   0.021 us    |                    _raw_spin_lock_irq();
+ 2) + 60.756 us   |                  }
+ 2)   0.025 us    |                  blk_status_to_errno();
+ 2) + 79.779 us   |                }
+ 2)               |                bio_put() {
+ 2)               |                  bio_free() {
+ 2)   0.031 us    |                    bio_disassociate_task();
+ 2)   0.027 us    |                    bvec_free();
+ 2)               |                    mempool_free() {
+ 2)               |                      mempool_free_slab() {
+ 2)   0.034 us    |                        kmem_cache_free();
+ 2)   0.249 us    |                      }
+ 2)   0.464 us    |                    }
+ 2)   1.068 us    |                  }
+ 2)   1.268 us    |                }
+ 2) + 83.219 us   |              }
+ 2) + 87.146 us   |            }
+ 2) + 87.363 us   |          }
+ 2)   0.026 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.210 us    |            }
+ 2)   0.393 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.212 us    |            }
+ 2)   0.395 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.378 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.374 us    |          }
+ 2)   0.033 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.380 us    |          }
+ 2)   0.029 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.203 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.022 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.397 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.393 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.387 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.387 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.210 us    |            }
+ 2)   0.389 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.390 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.388 us    |          }
+ 2)   0.026 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.024 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.206 us    |            }
+ 2)   0.388 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.213 us    |            }
+ 2)   0.403 us    |          }
+ 2)   0.025 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.387 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.205 us    |            }
+ 2)   0.494 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.386 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.390 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.019 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.384 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.018 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.022 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.200 us    |            }
+ 2)   0.387 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.208 us    |            }
+ 2)   0.399 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.376 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.377 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.202 us    |            }
+ 2)   0.381 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.388 us    |          }
+ 2)   0.030 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.396 us    |          }
+ 2)   0.020 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.398 us    |          }
+ 2)   0.021 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.405 us    |          }
+ 2)   0.026 us    |          sync_fs_one_sb();
+ 2)   0.021 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.021 us    |              rcu_all_qs();
+ 2)   0.195 us    |            }
+ 2)   0.390 us    |          }
+ 2)   0.033 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.196 us    |            }
+ 2)   0.382 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.379 us    |          }
+ 2)   0.026 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.325 us    |            }
+ 2)   0.513 us    |          }
+ 2)   0.019 us    |          sync_fs_one_sb();
+ 2)   0.020 us    |          up_read();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)               |          down_read() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.201 us    |            }
+ 2)   0.382 us    |          }
+ 2)               |          sync_fs_one_sb() {
+ 2)               |            ext4_sync_fs() {
+ 2)               |              flush_workqueue() {
+ 2)   0.021 us    |                __init_waitqueue_head();
+ 2)               |                mutex_lock() {
+ 2)               |                  _cond_resched() {
+ 2)   0.020 us    |                    rcu_all_qs();
+ 2)   0.197 us    |                  }
+ 2)   0.387 us    |                }
+ 2)               |                flush_workqueue_prep_pwqs() {
+ 2)   0.030 us    |                  _raw_spin_lock_irq();
+ 2)               |                  complete() {
+ 2)   0.023 us    |                    _raw_spin_lock_irqsave();
+ 2)               |                    __wake_up_locked() {
+ 2)   0.027 us    |                      __wake_up_common();
+ 2)   0.207 us    |                    }
+ 2)   0.028 us    |                    _raw_spin_unlock_irqrestore();
+ 2)   0.762 us    |                  }
+ 2)   1.153 us    |                }
+ 2)   0.019 us    |                mutex_unlock();
+ 2)   2.260 us    |              }
+ 2)   0.031 us    |              dquot_writeback_dquots();
+ 2)   0.046 us    |              _raw_read_lock();
+ 2)               |              jbd2_trans_will_send_data_barrier() {
+ 2)   0.019 us    |                _raw_read_lock();
+ 2)   0.251 us    |              }
+ 2)               |              jbd2_journal_start_commit() {
+ 2)   0.020 us    |                _raw_write_lock();
+ 2)   0.211 us    |              }
+ 2)               |              jbd2_log_wait_commit() {
+ 2)   0.020 us    |                _raw_read_lock();
+ 2)               |                __wake_up() {
+ 2)               |                  __wake_up_common_lock() {
+ 2)   0.026 us    |                    _raw_spin_lock_irqsave();
+ 2)   0.025 us    |                    __wake_up_common();
+ 2)   0.025 us    |                    _raw_spin_unlock_irqrestore();
+ 2)   0.582 us    |                  }
+ 2)   0.771 us    |                }
+ 2)               |                _cond_resched() {
+ 2)   0.020 us    |                  rcu_all_qs();
+ 2)   0.200 us    |                }
+ 2)   0.021 us    |                init_wait_entry();
+ 2)               |                prepare_to_wait_event() {
+ 2)   0.021 us    |                  _raw_spin_lock_irqsave();
+ 2)   0.027 us    |                  _raw_spin_unlock_irqrestore();
+ 2)   0.397 us    |                }
+ 2)               |                schedule() {
+ 2)   0.022 us    |                  rcu_note_context_switch();
+ 2)   0.026 us    |                  _raw_spin_lock();
+ 2)   0.029 us    |                  update_rq_clock();
+ 2)               |                  deactivate_task() {
+ 2)               |                    dequeue_task_fair() {
+ 2)               |                      dequeue_entity() {
+ 2)               |                        update_curr() {
+ 2)   0.022 us    |                          update_min_vruntime();
+ 2)   0.029 us    |                          cpuacct_charge();
+ 2)               |                          __cgroup_account_cputime() {
+ 2)   0.021 us    |                            cgroup_rstat_updated();
+ 2)   0.202 us    |                          }
+ 2)   0.794 us    |                        }
+ 2)   0.045 us    |                        __update_load_avg_se.isra.41();
+ 2)   0.020 us    |                        clear_buddies();
+ 2)   0.024 us    |                        account_entity_dequeue();
+ 2)   0.020 us    |                        update_cfs_group();
+ 2)   1.800 us    |                      }
+ 2)               |                      dequeue_entity() {
+ 2)               |                        update_curr() {
+ 2)   0.022 us    |                          update_min_vruntime();
+ 2)   0.210 us    |                        }
+ 2)   0.053 us    |                        __update_load_avg_se.isra.41();
+ 2)   0.022 us    |                        clear_buddies();
+ 2)   0.029 us    |                        account_entity_dequeue();
+ 2)               |                        update_cfs_group() {
+ 2)   0.032 us    |                          reweight_entity();
+ 2)   0.236 us    |                        }
+ 2)   1.507 us    |                      }
+ 2)   0.020 us    |                      hrtick_update();
+ 2)   3.840 us    |                    }
+ 2)   4.043 us    |                  }
+ 2)               |                  pick_next_task_fair() {
+ 2)   0.019 us    |                    __msecs_to_jiffies();
+ 2)   0.231 us    |                  }
+ 2)               |                  pick_next_task_idle() {
+ 2)               |                    put_prev_task_fair() {
+ 2)               |                      put_prev_entity() {
+ 2)   0.022 us    |                        check_cfs_rq_runtime();
+ 2)   0.215 us    |                      }
+ 2)               |                      put_prev_entity() {
+ 2)   0.021 us    |                        check_cfs_rq_runtime();
+ 2)   0.201 us    |                      }
+ 2)   0.762 us    |                    }
+ 2)   0.970 us    |                  }
+ 2) mobiben-16113  =>    <idle>-0   
+ 2)               |  switch_mm_irqs_off() {
+ 2)   0.097 us    |    load_new_mm_cr3();
+ 2)   0.419 us    |  }
+ 2)    <idle>-0    => mobiben-16113 
+ 2)   0.045 us    |                  finish_task_switch();
+ 2) ! 476.297 us  |                }
+ 2)               |                prepare_to_wait_event() {
+ 2)   0.027 us    |                  _raw_spin_lock_irqsave();
+ 2)   0.026 us    |                  _raw_spin_unlock_irqrestore();
+ 2)   0.424 us    |                }
+ 2)               |                finish_wait() {
+ 2)   0.022 us    |                  _raw_spin_lock_irqsave();
+ 2)   0.025 us    |                  _raw_spin_unlock_irqrestore();
+ 2)   0.405 us    |                }
+ 2)   0.027 us    |                _raw_read_lock();
+ 2) ! 480.146 us  |              }
+ 2) ! 484.040 us  |            }
+ 2) ! 484.269 us  |          }
+ 2)   0.029 us    |          up_read();
+ 2)   0.028 us    |          _raw_spin_lock();
+ 2) ! 672.043 us  |        }
+ 2)               |        iterate_bdevs() {
+ 2)   0.034 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.032 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.026 us    |          _raw_spin_lock();
+ 2)   0.027 us    |          _raw_spin_lock();
+ 2)   0.024 us    |          _raw_spin_lock();
+ 2)   0.023 us    |          _raw_spin_lock();
+ 2)   0.030 us    |          _raw_spin_lock();
+ 2)   0.029 us    |          _raw_spin_lock();
+ 2)   0.022 us    |          __iget();
+ 2)   0.024 us    |          iput();
+ 2)               |          mutex_lock() {
+ 2)               |            _cond_resched() {
+ 2)   0.020 us    |              rcu_all_qs();
+ 2)   0.197 us    |            }
+ 2)   0.375 us    |          }
+ 2)               |          fdatawrite_one_bdev() {
+ 2)               |            filemap_fdatawrite() {
+ 2)               |              __filemap_fdatawrite_range() {
+ 2)   0.022 us    |                I_BDEV();
+ 2)   0.019 us    |                _raw_spin_lock();
+ 2)               |                wbc_attach_and_unlock_inode() {
+ 2)   0.019 us    |                  I_BDEV();
+ 2)   0.202 us    |                }
+ 2)               |                do_writepages() {
+ 2)               |                  blkdev_writepages() {
+ 2)               |                    generic_writepages() {
+ 2)   0.027 us    |                      blk_start_plug();
+ 2)               |                      write_cache_pages() {
+ 2)               |                        tag_pages_for_writeback() {
+ 2)   0.020 us    |                          _raw_spin_lock_irq();
+ 2)   0.246 us    |                        }
+ 2)               |                        pagevec_lookup_range_tag() {
+ 2)   0.037 us    |                          find_get_pages_range_tag();
+ 2)   0.227 us    |                        }
+ 2)   0.878 us    |                      }
+ 2)               |                      blk_finish_plug() {
+ 2)   0.042 us    |                        blk_flush_plug_list();
+ 2)   0.234 us    |                      }
+ 2)   1.729 us    |                    }
+ 2)   1.923 us    |                  }
+ 2)   2.145 us    |                }
+ 2)   0.020 us    |                wbc_detach_inode();
+ 2)   3.276 us    |              }
+ 2)   3.461 us    |            }
+ 2)   3.651 us    |          }
+ 2)   0.019 us    |          mutex_unlock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.027 us    |          _raw_spin_lock();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)   0.026 us    |          __iget();
+ 2)   0.029 us    |          iput();
+ 2)               |          mutex_lock() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.192 us    |            }
+ 2)   0.367 us    |          }
+ 2)               |          fdatawrite_one_bdev() {
+ 2)               |            filemap_fdatawrite() {
+ 2)               |              __filemap_fdatawrite_range() {
+ 2)   0.019 us    |                I_BDEV();
+ 2)   0.018 us    |                _raw_spin_lock();
+ 2)               |                wbc_attach_and_unlock_inode() {
+ 2)   0.019 us    |                  I_BDEV();
+ 2)   0.195 us    |                }
+ 2)               |                do_writepages() {
+ 2)               |                  blkdev_writepages() {
+ 2)               |                    generic_writepages() {
+ 2)   0.019 us    |                      blk_start_plug();
+ 2)               |                      write_cache_pages() {
+ 2)               |                        tag_pages_for_writeback() {
+ 2)   0.019 us    |                          _raw_spin_lock_irq();
+ 2)   0.215 us    |                        }
+ 2)               |                        pagevec_lookup_range_tag() {
+ 2)   0.025 us    |                          find_get_pages_range_tag();
+ 2)   0.204 us    |                        }
+ 2)   0.778 us    |                      }
+ 2)               |                      blk_finish_plug() {
+ 2)   0.021 us    |                        blk_flush_plug_list();
+ 2)   0.200 us    |                      }
+ 2)   1.505 us    |                    }
+ 2)   1.677 us    |                  }
+ 2)   1.875 us    |                }
+ 2)   0.020 us    |                wbc_detach_inode();
+ 2)   2.980 us    |              }
+ 2)   3.153 us    |            }
+ 2)   3.331 us    |          }
+ 2)   0.020 us    |          mutex_unlock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.027 us    |          _raw_spin_lock();
+ 2)   0.031 us    |          _raw_spin_lock();
+ 2)   0.026 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.025 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.030 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.025 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          iput();
+ 2) + 40.563 us   |        }
+ 2)               |        iterate_bdevs() {
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.024 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.018 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.018 us    |          __iget();
+ 2)   0.025 us    |          iput();
+ 2)               |          mutex_lock() {
+ 2)               |            _cond_resched() {
+ 2)   0.018 us    |              rcu_all_qs();
+ 2)   0.198 us    |            }
+ 2)   0.376 us    |          }
+ 2)               |          fdatawait_one_bdev() {
+ 2)               |            filemap_fdatawait_keep_errors() {
+ 2)               |              __filemap_fdatawait_range() {
+ 2)               |                pagevec_lookup_range_tag() {
+ 2)   0.024 us    |                  find_get_pages_range_tag();
+ 2)   0.214 us    |                }
+ 2)   0.391 us    |              }
+ 2)   0.571 us    |            }
+ 2)   0.764 us    |          }
+ 2)   0.020 us    |          mutex_unlock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          __iget();
+ 2)   0.027 us    |          iput();
+ 2)               |          mutex_lock() {
+ 2)               |            _cond_resched() {
+ 2)   0.019 us    |              rcu_all_qs();
+ 2)   0.199 us    |            }
+ 2)   0.379 us    |          }
+ 2)               |          fdatawait_one_bdev() {
+ 2)               |            filemap_fdatawait_keep_errors() {
+ 2)               |              __filemap_fdatawait_range() {
+ 2)               |                pagevec_lookup_range_tag() {
+ 2)   0.024 us    |                  find_get_pages_range_tag();
+ 2)   0.198 us    |                }
+ 2)   0.386 us    |              }
+ 2)   0.563 us    |            }
+ 2)   0.746 us    |          }
+ 2)   0.020 us    |          mutex_unlock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.023 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.019 us    |          _raw_spin_lock();
+ 2)   0.020 us    |          _raw_spin_lock();
+ 2)   0.021 us    |          iput();
+ 2) + 10.337 us   |        }
+ 2) ! 963.150 us  |      }
+ 2) ! 963.340 us  |    } /* __ia32_sys_sync */
+ 2) ! 963.578 us  |  } /* do_syscall_64 */
