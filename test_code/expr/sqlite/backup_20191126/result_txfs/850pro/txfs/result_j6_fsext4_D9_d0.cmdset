@@ -1,1 +1,0 @@
-./bin/mobibench_TxFS -p /mnt -d 0 -n 10000 -j 6 -s 2 -T 1 -D 9
