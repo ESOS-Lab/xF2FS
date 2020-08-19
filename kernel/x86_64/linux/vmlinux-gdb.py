@@ -1,0 +1,1 @@
+/home/jata/xF2FS/kernel/x86_64/linux/scripts/gdb/vmlinux-gdb.py

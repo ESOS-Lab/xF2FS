@@ -1225,10 +1225,10 @@ include/config/auto.conf: \
 ifneq "$(ARCH)" "x86"
 include/config/auto.conf: FORCE
 endif
-ifneq "$(KERNELVERSION)" "4.18.0-rc6"
+ifneq "$(KERNELVERSION)" "4.18.0-rc6-xf2fs"
 include/config/auto.conf: FORCE
 endif
-ifneq "$(CC_VERSION_TEXT)" "gcc (Ubuntu 4.8.4-2ubuntu1~14.04.4) 4.8.4"
+ifneq "$(CC_VERSION_TEXT)" "gcc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0"
 include/config/auto.conf: FORCE
 endif
 ifneq "$(srctree)" "."

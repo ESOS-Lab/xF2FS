@@ -1,0 +1,160 @@
+ 7)               |            f2fs_ioc_commit_atomic_file_set.isra.53 [f2fs]() {
+ 7)               |              down_write() {
+ 7)   0.589 us    |              }
+ 7)               |              f2fs_get_node_page [f2fs]() {
+ 7)   1.727 us    |              }
+ 7)   0.043 us    |              f2fs_balance_fs [f2fs]();
+ 7)               |              down_read() {
+ 7)   0.493 us    |              }
+ 7)   0.024 us    |              blk_start_plug();
+ 7)               |              down_write() {
+ 7)   0.487 us    |              }
+ 7)               |              down_write() {
+ 7)   0.498 us    |              }
+ 7)               |              down_write() {
+ 7)   0.485 us    |              }
+ 7)               |              down_write() {
+ 7)   0.491 us    |              }
+ 7)               |              down_write() {
+ 7)   0.490 us    |              }
+ 7)               |              down_write() {
+ 7)   0.485 us    |              }
+ 7)               |              _cond_resched() {
+ 7)   0.256 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.763 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.361 us    |              }
+ 7)   0.029 us    |              f2fs_remove_dirty_inode [f2fs]();
+ 7)               |              f2fs_do_write_data_page [f2fs]() {
+ 7)   29.465 us   |              }
+ 7)   0.025 us    |              unlock_page();
+ 7)               |              _cond_resched() {
+ 7)   0.258 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.337 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.235 us    |              }
+ 7)   0.031 us    |              f2fs_remove_dirty_inode [f2fs]();
+ 7)               |              f2fs_do_write_data_page [f2fs]() {
+ 7)   18.400 us   |              }
+ 7)   0.026 us    |              unlock_page();
+ 7)               |              _cond_resched() {
+ 7)   0.261 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.343 us    |              }
+ 7)   0.027 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.238 us    |              }
+ 7)   0.026 us    |              f2fs_remove_dirty_inode [f2fs]();
+ 7)               |              f2fs_do_write_data_page [f2fs]() {
+ 7)   23.599 us   |              }
+ 7)   0.026 us    |              unlock_page();
+ 7)               |              _cond_resched() {
+ 7)   0.259 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.348 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.232 us    |              }
+ 7)   0.029 us    |              f2fs_remove_dirty_inode [f2fs]();
+ 7)               |              f2fs_do_write_data_page [f2fs]() {
+ 7)   18.341 us   |              }
+ 7)   0.025 us    |              unlock_page();
+ 7)               |              _cond_resched() {
+ 7)   0.252 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.424 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.231 us    |              }
+ 7)   0.031 us    |              f2fs_remove_dirty_inode [f2fs]();
+ 7)               |              f2fs_do_write_data_page [f2fs]() {
+ 7)   23.570 us   |              }
+ 7)   0.026 us    |              unlock_page();
+ 7)               |              _cond_resched() {
+ 7)   0.259 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.337 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.303 us    |              }
+ 7)   0.034 us    |              f2fs_remove_dirty_inode [f2fs]();
+ 7)               |              f2fs_do_write_data_page [f2fs]() {
+ 7)   18.312 us   |              }
+ 7)   0.026 us    |              unlock_page();
+ 7)   0.025 us    |              _raw_spin_lock();
+ 7)               |              mutex_unlock() {
+ 7)   0.337 us    |              }
+ 7)   0.031 us    |              up_write();
+ 7)   0.026 us    |              up_write();
+ 7)   0.025 us    |              _raw_spin_lock();
+ 7)               |              mutex_unlock() {
+ 7)   0.275 us    |              }
+ 7)   0.032 us    |              up_write();
+ 7)   0.033 us    |              up_write();
+ 7)   0.025 us    |              _raw_spin_lock();
+ 7)               |              mutex_unlock() {
+ 7)   0.264 us    |              }
+ 7)   0.027 us    |              up_write();
+ 7)   0.034 us    |              up_write();
+ 7)               |              _cond_resched() {
+ 7)   0.265 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.238 us    |              }
+ 7)               |              ____write_node_page [f2fs]() {
+ 7)   24.454 us   |              }
+ 7)               |              f2fs_get_node_info [f2fs]() {
+ 7)   1.000 us    |              }
+ 7)   0.030 us    |              kmem_cache_free();
+ 7)               |              _cond_resched() {
+ 7)   0.255 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.235 us    |              }
+ 7)               |              ____write_node_page [f2fs]() {
+ 7)   18.952 us   |              }
+ 7)               |              f2fs_get_node_info [f2fs]() {
+ 7)   0.995 us    |              }
+ 7)   0.032 us    |              kmem_cache_free();
+ 7)               |              _cond_resched() {
+ 7)   0.255 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.238 us    |              }
+ 7)               |              ____write_node_page [f2fs]() {
+ 7)   18.726 us   |              }
+ 7)               |              f2fs_get_node_info [f2fs]() {
+ 7)   1.070 us    |              }
+ 7)   0.033 us    |              kmem_cache_free();
+ 7)               |              f2fs_flush_merged_writes [f2fs]() {
+ 7)   36.019 us   |              }
+ 7)               |              blk_finish_plug() {
+ 7)   40.402 us   |              }
+ 7)               |              ____revoke_inmem_pages [f2fs]() {
+ 7)   54.707 us   |              }
+ 7)               |              f2fs_wait_on_node_pages_writeback [f2fs]() {
+ 7)   32.012 us   |              }
+ 7)               |              ____revoke_inmem_pages [f2fs]() {
+ 7)   2.658 us    |              }
+ 7)               |              f2fs_wait_on_node_pages_writeback [f2fs]() {
+ 7)   0.748 us    |              }
+ 7)               |              ____revoke_inmem_pages [f2fs]() {
+ 7)   2.650 us    |              }
+ 7)               |              f2fs_wait_on_node_pages_writeback [f2fs]() {
+ 7)   0.723 us    |              }
+ 7)               |              set_page_dirty() {
+ 7)   4.124 us    |              }
+ 7)   0.025 us    |              f2fs_wait_on_page_writeback [f2fs]();
+ 7)               |              clear_page_dirty_for_io() {
+ 7)   1.228 us    |              }
+ 7)               |              ____write_node_page [f2fs]() {
+ 7)   24.544 us   |              }
+ 7)               |              f2fs_wait_on_page_writeback [f2fs]() {
+ 7)   2228.072 us |              }
+ 7)   0.039 us    |              up_read();
+ 7)   0.042 us    |              up_write();
+ 7)   2694.113 us |            }
