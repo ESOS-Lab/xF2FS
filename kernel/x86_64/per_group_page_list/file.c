@@ -1557,6 +1557,7 @@ out:
 }
 
 static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg);
+static int f2fs_ioc_end_atomic_file_set_thread(struct file *filp, struct atomic_file_set *afs);
 
 static int f2fs_release_file(struct inode *inode, struct file *filp)
 {
@@ -3061,8 +3062,6 @@ int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg)
 	struct atomic_file *af;
 	bool allocated = false;
 
-	printk("[JATA DBG] %s is called\n", __func__);
-
 	fi = F2FS_I(inode);
 	sbi = F2FS_I_SB(inode);
 	afs = *(struct atomic_file_set**)arg;
@@ -3071,11 +3070,14 @@ int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg)
 		return -ENOENT;
 
 	if (!afs) {
+		printk("[JATA DBG] (%s) No afs\n", __func__);
 		return -ENOENT;
 	}
 
-	if (le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC)
+	if (le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC) {
+		printk("[JATA DBG] (%s) Invalid MAGIC\n", __func__);
 		return -ENOENT;
+	}
 
 	af = f2fs_kzalloc(sbi, sizeof(struct atomic_file), GFP_KERNEL);
 
@@ -3089,11 +3091,13 @@ int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg)
 	if (!af) {
 		if (allocated)
 			kfree(afs);
+		printk("[JATA DBG] (%s) No af\n", __func__);
 		return -ENOMEM;
 	}
 
 	af->inode = inode;
 	af->afs = afs;
+	INIT_LIST_HEAD(&af->revoke_list);
 
 	/*
 	 * The file that is inserted to atomic file list at first,
@@ -3142,17 +3146,30 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 	sbi = F2FS_I_SB(filp->f_inode);
 
 	if (!arg) {
-		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
-		if (!afs) {
-			printk("[JATA DBG] %s return -ENOMEM because afs couldn't be allocated\n", __func__);
-			return -ENOMEM;
-		}
-		INIT_LIST_HEAD(&afs->afs_list);
-		init_rwsem(&afs->afs_rwsem);
-		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
+		if (!current->afs) {
+			afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
+			if (!afs) {
+				printk("[JATA DBG] %s return -ENOMEM because afs couldn't be allocated\n", __func__);
+				return -ENOMEM;
+			}
+			afs->owner = current;
+			INIT_LIST_HEAD(&afs->afs_list);
+			INIT_LIST_HEAD(&afs->inmem_pages);
+			INIT_LIST_HEAD(&afs->inmem_node_pages);
+			init_rwsem(&afs->afs_rwsem);
+			afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
+			afs->key = 0;
 
-		current->afs = afs;
-		current->is_atomic = true;
+			current->afs = afs;
+			current->is_atomic = true;
+		} else {
+			if (!current->is_atomic) {
+				printk("[JATA DBG] (%s) Current thread has atomic" \
+				       "file set but is not atomic thread", __func__);
+				return -ENOENT;
+			}
+		}
+		return 0;
 	} else {
 		afs = (struct atomic_file_set*)rhashtable_lookup_fast(&sbi->afs_ht, &arg,
 		                                                      sbi->afs_kht_params);
@@ -3161,7 +3178,6 @@ static int f2fs_ioc_start_atomic_file_set(struct file *filp, unsigned long arg)
 			return -ENOENT;
 		}
 	}
-
 
 	if (le32_to_cpu(afs->afs_magic) != F2FS_MUFIT_MAGIC) {
 		printk("[JATA DBG] %s return -ENOENT because magic value strange\n", __func__);
@@ -3237,6 +3253,9 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		return -ENOENT;
 	}
 
+	if (!afs->last_file)
+		return 0;
+
 	fio.sbi = sbi;
 	fio.type = DATA;
 	fio.op = REQ_OP_WRITE;
@@ -3245,7 +3264,6 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	fio.io_wbc = NULL;
 
 	head = &afs->afs_list;
-
 
 	down_write(&afs->afs_rwsem);
 
@@ -3418,6 +3436,8 @@ retry:
 			mn->atm_addrs[afs->commit_file_count++] = ni.blk_addr;
 		}
 
+		set_page_private(page, 0);
+		ClearPagePrivate(page);
 		list_del(&inmem_node_cur->list);
 		kmem_cache_free(inmem_entry_slab, inmem_node_cur);
 	}
@@ -3456,8 +3476,9 @@ out:
 	up_write(&afs->afs_rwsem);
 
 	if (current->is_atomic && current->afs == afs) {
-		f2fs_ioc_end_atomic_file_set(NULL, (unsigned long)afs);
+		f2fs_ioc_end_atomic_file_set_thread(NULL, afs);
 		current->is_atomic = false;
+		current->afs = NULL;
 	}
 
 	return 0;
@@ -3786,6 +3807,39 @@ static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 		return -ENOENT;
 
 	rhashtable_remove_fast(&sbi->afs_ht, &afs->khtnode, sbi->afs_kht_params);
+
+	head = &afs->afs_list;
+
+	down_write(&afs->afs_rwsem);
+
+	if (afs->master_nid)
+		f2fs_truncate_master_node(afs);
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		/* Is there no any process to do when release atomic_file? */
+		F2FS_I(af_elem->inode)->af = NULL;
+		clear_inode_flag(af_elem->inode, FI_ADDED_ATOMIC_FILE);
+		list_del(&af_elem->list);
+		kfree(af_elem);
+	}
+	
+	up_write(&afs->afs_rwsem);
+
+	kfree(afs);
+
+	return 0;
+}
+
+static int f2fs_ioc_end_atomic_file_set_thread(struct file *filp, struct atomic_file_set *afs)
+{
+	struct atomic_file *af_elem, *tmp;
+	struct list_head *head;
+	struct f2fs_sb_info *sbi;
+
+	sbi = F2FS_I_SB(filp->f_inode);
+
+	if (!afs || afs->afs_magic != cpu_to_le32(F2FS_MUFIT_MAGIC))
+		return -ENOENT;
 
 	head = &afs->afs_list;
 
