@@ -2671,7 +2671,7 @@ static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
 	char *options = NULL;
 	int recovery, i, valid_super_block;
 	struct curseg_info *seg_i;
-	printk("[JATA DBG] (%s) sb->s_dev: %u\n", __func__, sb->s_dev);
+	//printk("[JATA DBG] (%s) sb->s_dev: %u\n", __func__, sb->s_dev);
 
 try_onemore:
 	err = -EINVAL;

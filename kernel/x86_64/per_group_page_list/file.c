@@ -218,6 +218,12 @@ static int f2fs_do_sync_file(struct file *file, loff_t start, loff_t end,
 		.for_reclaim = 0,
 	};
 
+	/*if (inode) {
+		struct dentry *dentry = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
+		if (dentry)
+			printk("[JATA DBG] %u: %s(%s)\n", current->pid, datasync ? "fdatasync":"fsync", dentry->d_name.name);
+	}*/
+
 	if (unlikely(f2fs_readonly(inode->i_sb)))
 		return 0;
 
@@ -3321,10 +3327,11 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	 * Step 1: Prepare atomic write of data pages
 	 */
 	list_for_each_entry_safe(af_elem, tmp, head, list) {
-		struct inode *inode;
-		inode = af_elem->inode;
+		struct inode *inode = af_elem->inode;
+		struct f2fs_inode_info *fi = F2FS_I(inode);
 		inode_lock(inode);
 		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
+		mutex_lock(&fi->inmem_lock);
 		set_inode_flag(inode, FI_ATOMIC_COMMIT);
 	}
 
@@ -3416,7 +3423,7 @@ retry:
 			continue;
 		}
 
-		ret = ____write_node_page(page, false, NULL, &wbc, true, FS_NODE_IO);
+		ret = ____write_node_page(page, false, NULL, &wbc, false, FS_NODE_IO);
 
 		if (ret) {
 			unlock_page(page);
@@ -3448,6 +3455,11 @@ retry:
 		struct inode *inode;
 		inode = af_elem->inode;
 		____revoke_inmem_pages(inode, &af_elem->revoke_list, false, false);
+	}
+
+	list_for_each_entry_safe(af_elem, tmp, head, list) {
+		struct inode *inode;
+		inode = af_elem->inode;
 		f2fs_wait_on_node_pages_writeback(sbi, inode->i_ino);
 	}
 
@@ -3460,7 +3472,7 @@ retry:
 		goto out;
 	}
 
-	if (____write_node_page(mpage, true, NULL, &wbc, true, FS_NODE_IO)) {
+	if (____write_node_page(mpage, true, NULL, &wbc, false, FS_NODE_IO)) {
 		printk("[JATA DBG] (%s) master node page write fails\n", __func__);
 		unlock_page(mpage);
 	}

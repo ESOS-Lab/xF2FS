@@ -2385,6 +2385,12 @@ static int f2fs_write_end(struct file *file,
 {
 	struct inode *inode = page->mapping->host;
 
+	/*if (inode) {
+		struct dentry *dentry = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
+		if (dentry)
+			printk("[JATA DBG] %u: write(%s)\n", current->pid, dentry->d_name.name);
+	}*/
+
 	trace_f2fs_write_end(inode, pos, len, copied);
 
 	/*
@@ -2533,16 +2539,17 @@ static int f2fs_set_data_page_dirty(struct page *page)
 	if (!PageUptodate(page))
 		SetPageUptodate(page);
 
-	if (current->is_atomic || (f2fs_is_atomic_file(inode) && !f2fs_is_commit_atomic_write(inode))) {
+	if ((current->is_atomic || f2fs_is_atomic_file(inode)) && !f2fs_is_commit_atomic_write(inode)) {
 		if (!f2fs_is_atomic_file(inode) && current->is_atomic) {
 			int locked = 0;
+			int ret;
 
 			if (inode_is_locked(inode)) {
 				inode_unlock(inode);
 				locked = 1;
 			}
 
-			f2fs_ioc_add_atomic_inode(inode, (unsigned long)&current->afs);
+			ret = f2fs_ioc_add_atomic_inode(inode, (unsigned long)&current->afs);
 
 			if (locked)
 				inode_lock(inode);
