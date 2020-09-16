@@ -2993,6 +2993,7 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);
 		allocated = true;
 		afs->key = key_allocator++;
+		afs->data_pages = 0;
 
 		err = rhashtable_insert_fast(&sbi->afs_ht, &afs->khtnode,
 		                             sbi->afs_kht_params);
@@ -3033,6 +3034,7 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 
 	af->inode = inode;
 	af->afs = afs;
+	af->data_pages = 0;
 	INIT_LIST_HEAD(&af->revoke_list);
 
 	/*
@@ -3245,6 +3247,7 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	struct inmem_node_pages *inmem_node_cur, *inmem_node_tmp;
 	struct f2fs_io_info fio;
 	pgoff_t last_idx = ULONG_MAX;
+	int data_pages = 0, node_pages = 0;
 
 	sbi = F2FS_I_SB(filp->f_inode);
 
@@ -3272,6 +3275,7 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 	head = &afs->afs_list;
 
 	down_write(&afs->afs_rwsem);
+	printk("[JATA DBG] (%s) afs->data_pages: %d\n", __func__, afs->data_pages);
 
 	/* checkpoint should be blocked before below code block */
 
@@ -3333,6 +3337,8 @@ static int f2fs_ioc_commit_atomic_file_set(struct file *filp, unsigned long arg)
 		down_write(&F2FS_I(inode)->i_gc_rwsem[WRITE]);
 		mutex_lock(&fi->inmem_lock);
 		set_inode_flag(inode, FI_ATOMIC_COMMIT);
+		printk("[JATA DBG] (%s) af->data_pages: %d\n", __func__, af_elem->data_pages);
+		af_elem->data_pages = 0;
 	}
 
 	/*
@@ -3359,12 +3365,14 @@ retry:
 			fio.need_lock = LOCK_DONE;
 			ret = f2fs_do_write_data_page(&fio);
 			if (ret) {
+				printk("[JATA DBG] Atomic commit Step 2 break!!!!!!!\n");
 				if (ret == -ENOMEM) {
 					congestion_wait(BLK_RW_ASYNC, HZ/50);
 					cond_resched();
 					goto retry;
 				}
 				unlock_page(page);
+				printk("[JATA DBG] Atomic commit Step 2 break!\n");
 				break;
 			}
 			inmem_cur->old_addr = fio.old_blkaddr;
@@ -3372,7 +3380,10 @@ retry:
 		}
 		unlock_page(page);
 		list_move_tail(&inmem_cur->list, &F2FS_I(inode)->af->revoke_list);
+		data_pages++;
 	}
+
+	printk("[JATA DBG] (%s) data_pages: %d\n", __func__, data_pages);
 
 	/*
 	 * Step 3: Release lock
@@ -3447,7 +3458,9 @@ retry:
 		ClearPagePrivate(page);
 		list_del(&inmem_node_cur->list);
 		kmem_cache_free(inmem_entry_slab, inmem_node_cur);
+		node_pages++;
 	}
+	printk("[JATA DBG] (%s) node_pages: %d\n", __func__, node_pages);
 	f2fs_flush_merged_writes(sbi);
 	blk_finish_plug(&plug);
 
@@ -3484,6 +3497,8 @@ out:
 
 	/* checkpoint should be unblocked now. */
 	f2fs_unlock_op(sbi);
+
+	afs->data_pages = 0;
 
 	up_write(&afs->afs_rwsem);
 

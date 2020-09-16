@@ -2293,6 +2293,7 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
 			!f2fs_available_free_memory(sbi, INMEM_PAGES)) {
 		err = -ENOMEM;
 		drop_atomic = true;
+		printk("[JATA DBG] (%s) no memory\n", __func__);
 		goto fail;
 	}
 
@@ -2385,11 +2386,13 @@ static int f2fs_write_end(struct file *file,
 {
 	struct inode *inode = page->mapping->host;
 
-	/*if (inode) {
+/*
+	if (inode) {
 		struct dentry *dentry = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
 		if (dentry)
-			printk("[JATA DBG] %u: write(%s)\n", current->pid, dentry->d_name.name);
-	}*/
+			printk("[JATA DBG] (%s) %u: %s\n", __func__, current->pid, dentry->d_name.name);
+	}
+*/
 
 	trace_f2fs_write_end(inode, pos, len, copied);
 

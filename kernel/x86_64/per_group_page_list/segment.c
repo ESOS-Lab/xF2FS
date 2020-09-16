@@ -191,6 +191,13 @@ void f2fs_register_inmem_page(struct inode *inode, struct page *page)
 	struct f2fs_inode_info *fi = F2FS_I(inode);
 	struct inmem_pages *new;
 
+	/*
+	if (inode) {
+		struct dentry *dentry = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
+		if (dentry)
+			printk("[JATA DBG] (%s) %u: %s\n", __func__, current->pid, dentry->d_name.name);
+	}*/
+
 	f2fs_trace_pid(page);
 
 	set_page_private(page, (unsigned long)ATOMIC_WRITTEN_PAGE);
@@ -211,7 +218,11 @@ void f2fs_register_inmem_page(struct inode *inode, struct page *page)
 			       "should no be NULL\n", __func__);
 			return;
 		}
+		down_write(&fi->af->afs->afs_rwsem);
 		list_add_tail(&new->list, &fi->af->afs->inmem_pages);
+		fi->af->afs->data_pages++;
+		fi->af->data_pages++;
+		up_write(&fi->af->afs->afs_rwsem);
 	} else
 		list_add_tail(&new->list, &fi->inmem_pages);
 	spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
