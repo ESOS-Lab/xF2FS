@@ -1,10 +1,24 @@
 
 #CROSS=arm-linux-gnueabi-
 
+# Reciepe for Mobibenchs
+# mobibench = mobibench.c + sqlite3.c
+# mobibench_atomic = mobibenc.c + sqlite3_atomic.c
+# mobibench_datomic = mobiench.c + sqlite3_datomic.c
+# mobibench_lsmvbt = mobibnech.c + sqlite3_lsmcvt.c
+# mobibench_MFAW = mobibench.c + sqlite3_MFAW.c
+# mobibench_MFAW_NODMA = mobibench.c + sqlite3_MFAW_NODMA.c
+# mobibench_MFAW_NOFLUSH = mobibench.c + sqlite3_MFAW_NOFLUSH.c
+# mobibench_MFAW_NOFLUSHDMA = mobibench.c + sqlite3_MFAW_NOFLUSHDMA.c
+# mobibench_QTxFS = mobibench_QTxFS.c + sqlite3_TxFS.c
+# mobibench_QTxFS_fsync = mobiench_QTxFS_fsync.c + sqlite3_TxFS.c
+# mobibench_TxFS = mobibench.c + sqlite3_TxFS.c
+# mobibench_WAL = mobibench.c + sqlite3_WAL.c
+
 EXENAME = mobibench_QTxFS
 
 SRCS = mobibench_QTxFS.c \
-	  sqlite3_TxFS.c
+	  sqlite3.c
 
 INSTALL = install
 
