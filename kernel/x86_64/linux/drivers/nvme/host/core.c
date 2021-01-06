@@ -3637,6 +3637,9 @@ int __init nvme_core_init(void)
 {
 	int result = -ENOMEM;
 
+	//JATA
+	dump_stack();
+
 	nvme_wq = alloc_workqueue("nvme-wq",
 			WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_SYSFS, 0);
 	if (!nvme_wq)

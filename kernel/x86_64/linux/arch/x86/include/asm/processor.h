@@ -500,6 +500,7 @@ struct thread_struct {
 
 	/* Floating point and extended processor state */
 	struct fpu		fpu;
+
 	/*
 	 * WARNING: 'fpu' is dynamically-sized.  It *MUST* be at
 	 * the end.
