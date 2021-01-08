@@ -3103,6 +3103,9 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	set_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
 	inode_unlock(inode);
 
+	if (!gc_trigger_start)
+		gc_trigger_start = get_current_utime();
+
 	return 0;
 }
 
@@ -3182,6 +3185,9 @@ int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg)
 	fi->af = af;
 	set_inode_flag(inode, FI_ADDED_ATOMIC_FILE);
 	//inode_unlock(inode);
+
+	if (!gc_trigger_start)
+		gc_trigger_start = get_current_utime();
 
 	return 0;
 }
@@ -3928,6 +3934,12 @@ static int f2fs_ioc_end_atomic_file_set(struct file *filp, unsigned long arg)
 	up_write(&afs->afs_rwsem);
 
 	kfree(afs);
+
+	printk("[JATA DBG] (%s) gc_count: %d seg_count: %d gc_trigger: %lld\n", __func__, gc_count, seg_count, gc_trigger_end - gc_trigger_start);
+	gc_count = 0;
+	seg_count = 0;
+	gc_trigger_end = 0;
+	gc_trigger_start = 0;
 
 	return 0;
 }

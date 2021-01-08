@@ -23,6 +23,11 @@
 #include "gc.h"
 #include <trace/events/f2fs.h>
 
+int gc_count = 0;
+int seg_count = 0;
+long long gc_trigger_start = 0;
+long long gc_trigger_end = 0;
+
 static int gc_thread_func(void *data)
 {
 	struct f2fs_sb_info *sbi = data;
@@ -1054,6 +1059,12 @@ int f2fs_gc(struct f2fs_sb_info *sbi, bool sync,
 	unsigned int skipped_round = 0, round = 0;
 #endif
 
+	printk("[SION DBG] (%s) gc is triggered!\n", __func__);
+
+	gc_count++;
+	if (!gc_trigger_end)
+		gc_trigger_end = get_current_utime();
+
 	trace_f2fs_gc_begin(sbi->sb, sync, background,
 				get_pages(sbi, F2FS_DIRTY_NODES),
 				get_pages(sbi, F2FS_DIRTY_DENTS),
@@ -1143,6 +1154,7 @@ stop:
 				free_segments(sbi),
 				reserved_segments(sbi),
 				prefree_segments(sbi));
+	seg_count += total_freed;
 
 	mutex_unlock(&sbi->gc_mutex);
 

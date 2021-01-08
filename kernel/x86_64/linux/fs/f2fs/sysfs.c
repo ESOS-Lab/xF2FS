@@ -516,6 +516,13 @@ static struct kobject f2fs_feat = {
 	.kset	= &f2fs_kset,
 };
 
+static int write_volume_seq_show(struct seq_file *seq, void *offset)
+{
+	seq_printf(seq, "Test");
+
+	return 0;
+}
+
 static int segment_info_seq_show(struct seq_file *seq, void *offset)
 {
 	struct super_block *sb = seq->private;
@@ -654,6 +661,8 @@ int f2fs_register_sysfs(struct f2fs_sb_info *sbi)
 	if (sbi->s_proc) {
 		proc_create_single_data("segment_info", S_IRUGO, sbi->s_proc,
 				segment_info_seq_show, sb);
+		proc_create_single_data("write_volume", S_IRUGO, sbi->s_proc,
+				write_volume_seq_show, sb);
 		proc_create_single_data("segment_bits", S_IRUGO, sbi->s_proc,
 				segment_bits_seq_show, sb);
 		proc_create_single_data("iostat_info", S_IRUGO, sbi->s_proc,
@@ -666,6 +675,7 @@ void f2fs_unregister_sysfs(struct f2fs_sb_info *sbi)
 {
 	if (sbi->s_proc) {
 		remove_proc_entry("iostat_info", sbi->s_proc);
+		remove_proc_entry("write_volume", sbi->s_proc);
 		remove_proc_entry("segment_info", sbi->s_proc);
 		remove_proc_entry("segment_bits", sbi->s_proc);
 		remove_proc_entry(sbi->sb->s_id, f2fs_proc_root);

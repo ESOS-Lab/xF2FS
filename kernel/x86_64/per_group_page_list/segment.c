@@ -2907,7 +2907,7 @@ void f2fs_allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 				if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
 					update_sit_entry(sbi, old_blkaddr, -1);
 			} else {
-				printk("[JATA DBG] (%s) No page type.\n", __func__);
+				//printk("[JATA DBG] (%s) No page type.\n", __func__);
 				update_sit_entry(sbi, *new_blkaddr, 1);
 				if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
 					update_sit_entry(sbi, old_blkaddr, -1);
