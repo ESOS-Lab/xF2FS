@@ -518,8 +518,56 @@ static struct kobject f2fs_feat = {
 
 static int write_volume_seq_show(struct seq_file *seq, void *offset)
 {
-	seq_printf(seq, "Test");
+	seq_printf(seq, "write_count: %d dirty_count: %d dirty_sst_count: %d \
+	                 dirty_log_count: %d dirty_MANIFEST_count: %d \
+	                 dirty_LOG_count: %d dirty_root_count: %d \
+	                 dirty_dbtmp_count: %d dirty_OPTIONS_count: %d \
+	                 dirty_node_count: %d atomic_count: %d atomic_if_count: %d\n",
+	                 write_count, dirty_count, dirty_sst_count,
+	                 dirty_log_count, dirty_MANIFEST_count,
+	                 dirty_LOG_count, dirty_root_count,
+	                 dirty_dbtmp_count, dirty_OPTIONS_count,
+	                 dirty_node_count, atomic_count, atomic_if_count);
+	write_count = 0;
+	dirty_count = 0;
+	dirty_sst_count = 0;
+	dirty_log_count = 0;
+	dirty_MANIFEST_count = 0;
+	dirty_LOG_count = 0;
+	dirty_root_count = 0;
+	dirty_dbtmp_count = 0;
+	dirty_OPTIONS_count = 0;
+	dirty_node_count = 0;
+	atomic_count = 0;
+	atomic_if_count = 0;
+	/*struct write_vol_entry *wv_entry1, *wv_entry2, *tmp1, *tmp2;
+	list_for_each_entry_safe(wv_entry1, tmp1, &write_vol_header.list, list) {
+		list_for_each_entry_safe(wv_entry2, tmp2, &wv_entry1->list, list) {
+			if (wv_entry2 == &write_vol_header) {
+				break;
+			}
+			if (wv_entry1 != wv_entry2 && 
+			    wv_entry1->inum == wv_entry2->inum && 
+			    wv_entry1->index == wv_entry2->index) {
+				wv_entry1->count += wv_entry2->count;
+				list_del_init(&wv_entry2->list);
+				kfree(wv_entry2);
+			}
+		}
+	}
 
+	list_for_each_entry_safe(wv_entry1, tmp1, &write_vol_header.list, list) {
+		list_del(&wv_entry1->list);
+		kfree(wv_entry1);
+	}*/
+
+	return 0;
+}
+
+static int trace_switch_seq_show(struct seq_file *seq, void *offset)
+{
+	write_vol_trace = !write_vol_trace;
+	seq_printf(seq, "Write volume tracing is %s\n", write_vol_trace ? "On":"Off");
 	return 0;
 }
 
@@ -663,6 +711,8 @@ int f2fs_register_sysfs(struct f2fs_sb_info *sbi)
 				segment_info_seq_show, sb);
 		proc_create_single_data("write_volume", S_IRUGO, sbi->s_proc,
 				write_volume_seq_show, sb);
+		proc_create_single_data("trace_switch", S_IRUGO, sbi->s_proc,
+				trace_switch_seq_show, sb);
 		proc_create_single_data("segment_bits", S_IRUGO, sbi->s_proc,
 				segment_bits_seq_show, sb);
 		proc_create_single_data("iostat_info", S_IRUGO, sbi->s_proc,
@@ -676,6 +726,7 @@ void f2fs_unregister_sysfs(struct f2fs_sb_info *sbi)
 	if (sbi->s_proc) {
 		remove_proc_entry("iostat_info", sbi->s_proc);
 		remove_proc_entry("write_volume", sbi->s_proc);
+		remove_proc_entry("trace_switch", sbi->s_proc);
 		remove_proc_entry("segment_info", sbi->s_proc);
 		remove_proc_entry("segment_bits", sbi->s_proc);
 		remove_proc_entry(sbi->sb->s_id, f2fs_proc_root);

@@ -205,35 +205,30 @@ void f2fs_register_inmem_page(struct inode *inode, struct page *page)
 	if (!new)
 		printk("[JATA DBG] (%s) new is NULL\n", __func__);
 
-#ifdef F2FS_MFAW_STEAL
+//#ifdef F2FS_MFAW_STEAL
+#if 0
 	set_page_private(page, (unsigned long)new);
-	if (!IS_ATOMIC_WRITTEN_PAGE(page))
-		printk("[JATA DBG] (%s) the page couldn't become an atomic page\n", __func__);
+	if (!IS_ATOMIC_WRITTEN_PAGE(page)) {
+		printk("[JATA DBG] (%s) the page couldn't become atomic page. "\
+		       "new: %p, private: %p\n", __func__, new,
+		       (struct inmem_pages*)page_private(page));
+		dump_stack();
+	}
 #endif
 
 	/* add atomic page indices to the list */
 	new->page = page;
 	new->index = page->index;
 	INIT_LIST_HEAD(&new->list);
+	new->old_addr = 0;
+	new->new_addr = 0;
+	new->stolen = false;
+	new->decreased = false;
 
 	/* increase reference count with clean state */
 	mutex_lock(&fi->inmem_lock);
 	get_page(page);
-	if (f2fs_is_added_file(inode)) {
-		if (!fi->af || !fi->af->afs) {
-			printk("[JATA DBG] (%s) atomic file group"
-			       "should no be NULL\n", __func__);
-			return;
-		}
-		down_write(&fi->af->afs->afs_rwsem);
-		if (fi->af == NULL) {
-			printk("[JATA DBG] (%s) (%d) af is NULL\n", __func__, current->pid);
-		} else if (fi->af->afs == NULL) {
-			printk("[JATA DBG] (%s) (%d) afs is NULL\n", __func__, current->pid);
-		}
-		list_add_tail(&new->list, &fi->af->afs->inmem_pages);
-		up_write(&fi->af->afs->afs_rwsem);
-	} else
+	if (!f2fs_is_added_file(inode))
 		list_add_tail(&new->list, &fi->inmem_pages);
 	spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
 	if (list_empty(&fi->inmem_ilist))
@@ -241,6 +236,17 @@ void f2fs_register_inmem_page(struct inode *inode, struct page *page)
 	spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
 	inc_page_count(F2FS_I_SB(inode), F2FS_INMEM_PAGES);
 	mutex_unlock(&fi->inmem_lock);
+
+	if (f2fs_is_added_file(inode)) {
+		if (!fi->af || !fi->af->afs) {
+			printk("[JATA DBG] (%s) atomic file group"
+			       "should not be NULL\n", __func__);
+			return;
+		}
+		down_write(&fi->af->afs->afs_rwsem);
+		list_add_tail(&new->list, &fi->af->afs->inmem_pages_list);
+		up_write(&fi->af->afs->afs_rwsem);
+	}
 
 	trace_f2fs_register_inmem_page(page, INMEM);
 }
@@ -251,12 +257,14 @@ static int __revoke_inmem_pages(struct inode *inode,
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct inmem_pages *cur, *tmp;
 	int err = 0;
-#ifdef F2FS_MFAW_STEAL
+//#ifdef F2FS_MFAW_STEAL
+#if 0
 	struct sit_info *sit_i = SIT_I(sbi);
 #endif
 
 	list_for_each_entry_safe(cur, tmp, head, list) {
 		struct page *page = cur->page;
+		inode = page->mapping->host;
 
 		if (drop)
 			trace_f2fs_commit_inmem_page(page, INMEM_DROP);
@@ -298,22 +306,31 @@ next:
 			ClearPageUptodate(page);
 		set_page_private(page, 0);
 		ClearPagePrivate(page);
+
 		f2fs_put_page(page, 1);
 
-#ifdef F2FS_MFAW_STEAL
-		down_write(&sit_i->sentry_lock);
-		update_sit_entry(sbi, cur->new_addr, 1);
-		if (GET_SEGNO(sbi, cur->old_addr) != NULL_SEGNO)
-			update_sit_entry(sbi, cur->old_addr, -1);
+//#ifdef F2FS_MFAW_STEAL
+#if 0
+		if (cur->stolen && cur->old_addr && cur->old_addr != NEW_ADDR) {
+			down_write(&sit_i->sentry_lock);
+			if (GET_SEGNO(sbi, cur->old_addr) != NULL_SEGNO)
+				update_sit_entry(sbi, cur->old_addr, -1);
 
-		locate_dirty_segment(sbi, GET_SEGNO(sbi, cur->old_addr));
-		locate_dirty_segment(sbi, GET_SEGNO(sbi, cur->new_addr));
-		up_write(&sit_i->sentry_lock);
+			//locate_dirty_segment(sbi, GET_SEGNO(sbi, cur->old_addr));
+			up_write(&sit_i->sentry_lock);
+		}
+
+		if (!cur->decreased) {
+			if (!get_pages(sbi, F2FS_INMEM_PAGES))
+				printk("[JATA_DBG] (%s) The inmem pages"
+				       "count is zero!!!\n", __func__);
+			dec_page_count(F2FS_I_SB(inode), F2FS_INMEM_PAGES);
+			cur->decreased = true;
+		}
 #endif
 
 		list_del(&cur->list);
 		kmem_cache_free(inmem_entry_slab, cur);
-		dec_page_count(F2FS_I_SB(inode), F2FS_INMEM_PAGES);
 	}
 	return err;
 }
@@ -357,48 +374,159 @@ skip:
 }
 
 #ifdef F2FS_MFAW_STEAL
-void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi, bool gc_failure)
+void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi)
 {
-	struct list_head *head = &sbi->inode_list[ATOMIC_FILE];
-	struct inode *inode;
-	struct f2fs_inode_info *fi;
-	struct inmem_pages *cur, *tmp;
+	struct list_head *head = &sbi->afs_list;
+	struct list_head *next = head;
 	struct atomic_file_set *afs;
+	struct inmem_pages *page_cur, *page_tmp;
+	/*struct writeback_control wbc = {
+		.sync_mode = WB_SYNC_ALL,
+		.nr_to_write = LONG_MAX,
+		.range_start = 0,
+		.range_end = LLONG_MAX,
+		.for_reclaim = 0
+	};
+	struct f2fs_io_info fio = {
+		.sbi = sbi,
+		.type = DATA,
+		.op = REQ_OP_WRITE,
+		.op_flags = REQ_SYNC | REQ_PRIO,
+		.io_type = FS_DATA_IO,
+		.io_wbc = NULL
+	};*/
+
+	f2fs_lock_op(sbi);
+	if (unlikely(!writeback_in_progress(&sbi->sb->s_bdi->wb)))
+		wb_start_background_writeback(&sbi->sb->s_bdi->wb);
+	read_lock(&sbi->afs_list_lock);
 next:
-	spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
-	if (list_empty(head)) {
-		spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
+	next = next->next;
+	if (!next || head == next || list_empty(head)) {
+		read_unlock(&sbi->afs_list_lock);
+		f2fs_unlock_op(sbi);
 		return;
 	}
-	fi = list_first_entry(head, struct f2fs_inode_info, inmem_ilist);
-	inode = igrab(&fi->vfs_inode);
-	if (f2fs_is_added_file(inode))
-		afs = fi->af->afs;
-	spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
+	afs = list_entry(next, struct atomic_file_set, global_afs_list);
 
-	if (inode) {
-		if (gc_failure) {
-			if (fi->i_gc_failures[GC_FAILURE_ATOMIC])
-				goto steal;
-			goto skip;
+	if (!virt_addr_valid(afs)) {
+		printk("[JATA DBG] (%s) afs is invalid address\n", __func__);
+		goto next;
+	}
+
+	if (afs->committing)
+		goto next;
+
+	read_unlock(&sbi->afs_list_lock);
+
+	down_read(&afs->afs_rwsem);
+
+	if (afs->committing && !(afs->started)) {
+		read_lock(&sbi->afs_list_lock);
+		goto next;
+	}
+
+	if (afs->committing && !afs->started) {
+		up_read(&afs->afs_rwsem);
+		read_lock(&sbi->afs_list_lock);
+		goto next;
+	}
+
+	if (!(afs->inmem_pages_list.next) || !(afs->inmem_pages_list.prev))
+		printk("[JATA DBG] (%s) afs->inmem_pages_list is NULL\n", __func__);
+
+	list_for_each_entry_safe(page_cur, page_tmp, &afs->inmem_pages_list, list) {
+		struct page *page;
+
+		if (!page_cur)
+			printk("[JATA DBG] (%s) page_cur is NULL\n", __func__);
+
+		page = page_cur->page;
+
+		lock_page(page);
+		if (!PageDirty(page)) {
+			__set_page_dirty_nobuffers(page);
+			f2fs_update_dirty_page(page->mapping->host, page);
 		}
-steal:
-		afs = fi->af->afs;
-		list_for_each_entry_safe(cur, tmp, &afs->inmem_pages, list) {
-			struct page *page = cur->page;
+		if (!get_pages(sbi, F2FS_INMEM_PAGES))
+			printk("[JATA_DBG] (%s) The inmem pages"
+			       "count is zero!!!\n", __func__);
+		if (!page_cur->decreased) {
+			dec_page_count(sbi, F2FS_INMEM_PAGES);
+			page_cur->decreased = true;
+		}
+		set_page_private(page, 0);
+		ClearPagePrivate(page);
+		unlock_page(page);
+		list_del(&page_cur->list);
+		kmem_cache_free(inmem_entry_slab, page_cur);
+	}
+	up_read(&afs->afs_rwsem);
+	read_lock(&sbi->afs_list_lock);
+	goto next;
+}
+
+/*void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi)
+{
+	struct list_head *head = &sbi->afs_list;
+	struct atomic_file_set *afs_cur, *afs_tmp;
+	struct atomic_file_set *afs;
+	struct inmem_pages *page_cur, *page_tmp;
+
+	read_lock(&sbi->afs_list_lock);
+	list_for_each_entry_safe(afs_cur, afs_tmp, head, global_afs_list) {
+		down_read(&afs_cur->afs_rwsem);
+		list_for_each_entry_safe(page_cur, page_tmp, &afs_cur->inmem_pages, list) {
+			struct page *page = page_cur->page;
 
 			lock_page(page);
-
-			set_page_dirty(page);
+			if (!PageDirty(page)) {
+				__set_page_dirty_nobuffers(page);
+				f2fs_update_dirty_page(page->mapping->host, page);
+			}
+			unlock_page(page);
 			dec_page_count(sbi, F2FS_INMEM_PAGES);
-			f2fs_put_page(page, 1);
 		}
-		iput(inode);
+		up_read(&afs_cur->afs_rwsem);
 	}
-skip:
-	congestion_wait(BLK_RW_ASYNC, HZ/50);
-	cond_resched();
-	goto next;
+	read_unlock(&sbi->afs_list_lock);
+}*/
+
+void f2fs_steal_inmem_pages(struct inode *inode)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	struct f2fs_inode_info *fi = F2FS_I(inode);
+
+	if (f2fs_is_added_file(inode)) {
+		struct atomic_file_set *afs = fi->af->afs;
+		struct inmem_pages *cur, *tmp;
+
+		down_read(&afs->afs_rwsem);
+		mutex_lock(&fi->inmem_lock);
+
+		list_for_each_entry_safe(cur, tmp, &afs->inmem_pages_list, list) {
+			lock_page(cur->page);
+			if (!PageDirty(cur->page)) {
+				__set_page_dirty_nobuffers(cur->page);
+				f2fs_update_dirty_page(inode, cur->page);
+			}
+			unlock_page(cur->page);
+			if (!get_pages(sbi, F2FS_INMEM_PAGES))
+				printk("[JATA_DBG] (%s) The inmem pages"
+				       "count is zero!!!\n", __func__);
+			if (!cur->decreased) {
+				dec_page_count(sbi, F2FS_INMEM_PAGES);
+				cur->decreased = true;
+			}
+		}
+
+		mutex_unlock(&fi->inmem_lock);
+		up_read(&afs->afs_rwsem);
+	} else {
+		mutex_lock(&fi->inmem_lock);
+
+		mutex_unlock(&fi->inmem_lock);
+	}
 }
 #endif
 
@@ -407,13 +535,31 @@ void f2fs_drop_inmem_pages(struct inode *inode)
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct f2fs_inode_info *fi = F2FS_I(inode);
 
-	mutex_lock(&fi->inmem_lock);
-	__revoke_inmem_pages(inode, &fi->inmem_pages, true, false);
-	spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
-	if (!list_empty(&fi->inmem_ilist))
-		list_del_init(&fi->inmem_ilist);
-	spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
-	mutex_unlock(&fi->inmem_lock);
+	if (f2fs_is_added_file(inode)) {
+		struct atomic_file_set *afs = fi->af->afs;
+
+		down_write(&afs->afs_rwsem);
+		mutex_lock(&fi->inmem_lock);
+
+		__revoke_inmem_pages(inode, &afs->inmem_pages_list, true, false);
+
+		spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
+		if (!list_empty(&fi->inmem_ilist))
+			list_del_init(&fi->inmem_ilist);
+		spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
+
+		mutex_unlock(&fi->inmem_lock);
+		up_write(&afs->afs_rwsem);
+	} else {
+		mutex_lock(&fi->inmem_lock);
+		__revoke_inmem_pages(inode, &fi->inmem_pages, true, false);
+
+		spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
+		if (!list_empty(&fi->inmem_ilist))
+			list_del_init(&fi->inmem_ilist);
+		spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
+		mutex_unlock(&fi->inmem_lock);
+	}
 
 	clear_inode_flag(inode, FI_ATOMIC_FILE);
 	fi->i_gc_failures[GC_FAILURE_ATOMIC] = 0;
@@ -429,17 +575,42 @@ void f2fs_drop_inmem_page(struct inode *inode, struct page *page)
 
 	f2fs_bug_on(sbi, !IS_ATOMIC_WRITTEN_PAGE(page));
 
-	mutex_lock(&fi->inmem_lock);
-	list_for_each_entry(cur, head, list) {
-		if (cur->page == page)
-			break;
+	if (f2fs_is_added_file(inode)) {
+		down_write(&fi->af->afs->afs_rwsem);
+		if (page->mapping->host->i_ino == F2FS_NODE_INO(sbi))
+			head = &fi->af->afs->inmem_node_pages_list;
+		else
+			head = &fi->af->afs->inmem_pages_list;
+
+		mutex_lock(&fi->inmem_lock);
+		list_for_each_entry(cur, head, list) {
+			if (cur->page == page)
+				break;
+		}
+
+		f2fs_bug_on(sbi, list_empty(head) || cur->page != page);
+		list_del(&cur->list);
+		mutex_unlock(&fi->inmem_lock);
+		up_write(&fi->af->afs->afs_rwsem);
+	} else {
+		mutex_lock(&fi->inmem_lock);
+		list_for_each_entry(cur, head, list) {
+			if (cur->page == page)
+				break;
+		}
+
+		f2fs_bug_on(sbi, list_empty(head) || cur->page != page);
+		list_del(&cur->list);
+		mutex_unlock(&fi->inmem_lock);
 	}
 
-	f2fs_bug_on(sbi, list_empty(head) || cur->page != page);
-	list_del(&cur->list);
-	mutex_unlock(&fi->inmem_lock);
-
-	dec_page_count(sbi, F2FS_INMEM_PAGES);
+	if (!get_pages(sbi, F2FS_INMEM_PAGES))
+		printk("[JATA_DBG] (%s) The inmem pages"
+		       "count is zero!!!\n", __func__);
+	if (cur->decreased) {
+		dec_page_count(sbi, F2FS_INMEM_PAGES);
+		cur->decreased = true;
+	}
 	kmem_cache_free(inmem_entry_slab, cur);
 
 	ClearPageUptodate(page);
@@ -2070,6 +2241,10 @@ static void update_sit_entry(struct f2fs_sb_info *sbi, block_t blkaddr, int del)
 
 	if (sbi->segs_per_sec > 1)
 		get_sec_entry(sbi, segno)->valid_blocks += del;
+	if ((new_vblocks >> (sizeof(unsigned short) << 3)) || new_vblocks > sbi->blocks_per_seg) {
+		printk("[JATA DBG] (%s) new_vblocks: %lu\n", __func__, new_vblocks);
+		dump_stack();
+	}
 }
 
 void f2fs_invalidate_blocks(struct f2fs_sb_info *sbi, block_t addr)
@@ -2890,32 +3065,50 @@ void f2fs_allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 	 * SIT information should be updated before segment allocation,
 	 * since SSR needs latest valid block information.
 	 */
-#ifdef F2FS_MFAW_STEAL
-	if (IS_ATOMIC_WRITTEN_PAGE(page)) {
+//#ifdef F2FS_MFAW_STEAL
+#if 0
+	if (IS_ATOMIC_WRITTEN_PAGE(page) && 
+	    (!IS_DNODE(page) && !is_cold_node(page) && !is_master_node(page))) {
 		struct inmem_pages *inmem_page = (struct inmem_pages*)page->private;
 
-		//update_sit_entry(sbi, *new_blkaddr, 1);
+		update_sit_entry(sbi, *new_blkaddr, 1);
 		if (fio->io_type == FS_GC_DATA_IO) {
 			if (inmem_page->old_addr == old_blkaddr) {
 				inmem_page->old_addr = *new_blkaddr;
-				update_sit_entry(sbi, *new_blkaddr, 1);
 				if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
 					update_sit_entry(sbi, old_blkaddr, -1);
 			} else if (inmem_page->new_addr == old_blkaddr) {
 				inmem_page->new_addr = *new_blkaddr;
-				update_sit_entry(sbi, *new_blkaddr, 1);
 				if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
 					update_sit_entry(sbi, old_blkaddr, -1);
 			} else {
-				//printk("[JATA DBG] (%s) No page type.\n", __func__);
-				update_sit_entry(sbi, *new_blkaddr, 1);
+				printk("[JATA DBG] (%s) No page type.\n", __func__);
 				if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
 					update_sit_entry(sbi, old_blkaddr, -1);
 			}
 		} else {
+			if (inmem_page->stolen) {
+				if (GET_SEGNO(sbi, inmem_page->new_addr) != NULL_SEGNO) {
+					update_sit_entry(sbi, inmem_page->new_addr, -1);
+				}
+				locate_dirty_segment(sbi,
+				            GET_SEGNO(sbi, inmem_page->new_addr));
+			} else
+				inmem_page->old_addr = old_blkaddr;
+
 			inmem_page->new_addr = *new_blkaddr;
-			inmem_page->old_addr = old_blkaddr;
+			if (inmem_page->old_addr < 1000) {
+				printk("[JATA DBG] (%s) Strange address\n", __func__);
+			}
 		}
+		inmem_page->stolen = true;
+		if (GET_SEGNO(sbi, *new_blkaddr) > MAIN_SEGS(sbi)) {
+			printk("[JATA DBG] (%s) new_addr: %u\n", __func__, *new_blkaddr);
+			dump_stack();
+		}
+		if (GET_SEGNO(sbi, inmem_page->new_addr) > MAIN_SEGS(sbi))
+			printk("JATA DBG] (%s) new_addr: %u new_blkaddr: %u\n", __func__,
+			       inmem_page->new_addr, *new_blkaddr);
 	} else {
 		update_sit_entry(sbi, *new_blkaddr, 1);
 		if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)

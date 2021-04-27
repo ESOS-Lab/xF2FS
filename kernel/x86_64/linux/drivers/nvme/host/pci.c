@@ -2525,9 +2525,6 @@ static int nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	unsigned long quirks = id->driver_data;
 	size_t alloc_size;
 
-	// JATA
-	dump_stack();
-
 	node = dev_to_node(&pdev->dev);
 	if (node == NUMA_NO_NODE)
 		set_dev_node(&pdev->dev, first_memory_node);
@@ -2784,8 +2781,6 @@ static struct pci_driver nvme_driver = {
 
 static int __init nvme_init(void)
 {
-	// JATA
-	dump_stack();
 	return pci_register_driver(&nvme_driver);
 }
 

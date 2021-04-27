@@ -2,7 +2,7 @@
 VERSION = 4
 PATCHLEVEL = 18
 SUBLEVEL = 0
-EXTRAVERSION = -rc6-xf2fs
+EXTRAVERSION = -rc6-xf2fs-dbg
 NAME = Merciless Moray
 
 # *DOCUMENTATION*

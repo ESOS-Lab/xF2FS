@@ -31,6 +31,34 @@
 
 #define F2FS_MFAW_STEAL
 
+/*struct write_vol_entry {
+	unsigned long inum;
+	unsigned long index;
+	int count;
+	struct list_head list;
+};
+
+extern struct write_vol_entry write_vol_header;*/
+
+extern int gc_count;
+extern int fgc_count;
+extern int seg_count;
+extern int write_count;
+extern int dirty_count;
+extern int dirty_sst_count;
+extern int dirty_log_count;
+extern int dirty_MANIFEST_count;
+extern int dirty_LOG_count;
+extern int dirty_root_count;
+extern int dirty_dbtmp_count;
+extern int dirty_OPTIONS_count;
+extern int dirty_node_count;
+extern int atomic_count;
+extern int atomic_if_count;
+extern long long gc_trigger_start;
+extern long long gc_trigger_end;
+extern int write_vol_trace;
+
 #ifdef CONFIG_F2FS_CHECK_FS
 #define f2fs_bug_on(sbi, condition)	BUG_ON(condition)
 #else
@@ -645,13 +673,16 @@ struct atomic_file_set {
 	unsigned long key;			/* key for the atomic file set */
 	struct task_struct *owner;		/* Pointer to thread which have made it */
 	struct list_head afs_list;		/* atomic file list */
-	struct list_head inmem_pages;		/* inmemory pages managed by f2fs */
-	struct list_head inmem_node_pages;	/* inmemory pages for node */
+	struct list_head inmem_pages_list;	/* inmemory pages managed by f2fs */
+	struct list_head inmem_node_pages_list;	/* inmemory pages for node */
+	struct list_head global_afs_list;
 	struct rw_semaphore afs_rwsem;		/* semaphore for afs */
 	unsigned int commit_file_count;		/* commit count in atomic file set */
 	struct atomic_file *last_file;		/* last file in atomic file set */
 	nid_t master_nid;			/* nid of mufit node */
 	struct rhash_head khtnode;		/* node for key hash table */
+	bool started;
+	bool committing;
 	long long start;
 	__le32 afs_magic;			/* magic number for atomic file set */
 };
@@ -1332,6 +1363,12 @@ struct f2fs_sb_info {
 	 */
 	struct rhashtable afs_ht;
 	struct rhashtable_params afs_kht_params;
+	rwlock_t afs_ht_lock;
+
+	struct list_head afs_list;
+	rwlock_t afs_list_lock;
+
+	struct mutex steal_mutex;
 
 	/* Precomputed FS UUID checksum for seeding other checksums */
 	__u32 s_chksum_seed;
@@ -1797,6 +1834,10 @@ static inline void inode_inc_dirty_pages(struct inode *inode)
 
 static inline void dec_page_count(struct f2fs_sb_info *sbi, int count_type)
 {
+	if (count_type == F2FS_WB_CP_DATA && 
+	    !atomic_read(&sbi->nr_pages[F2FS_WB_CP_DATA]))
+		printk("[JATA DBG] (%s) page count decreased %d\n", __func__, 
+		                atomic_read(&sbi->nr_pages[F2FS_WB_CP_DATA]));
 	atomic_dec(&sbi->nr_pages[count_type]);
 }
 
@@ -2906,7 +2947,8 @@ extern int ____write_node_page(struct page *page, bool atomic, bool *submitted, 
 bool f2fs_need_SSR(struct f2fs_sb_info *sbi);
 void f2fs_register_inmem_page(struct inode *inode, struct page *page);
 void f2fs_drop_inmem_pages_all(struct f2fs_sb_info *sbi, bool gc_failure);
-void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi, bool gc_failure);
+void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi);
+void f2fs_steal_inmem_pages(struct inode *inode);
 void f2fs_drop_inmem_pages(struct inode *inode);
 void f2fs_drop_inmem_page(struct inode *inode, struct page *page);
 int f2fs_commit_inmem_pages(struct inode *inode);

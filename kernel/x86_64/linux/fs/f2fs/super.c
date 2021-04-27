@@ -3037,6 +3037,11 @@ skip_recovery:
 	err = rhashtable_init(&sbi->afs_ht, &sbi->afs_kht_params);
 	if (err)
 		goto free_afs_hash;
+	rwlock_init(&sbi->afs_ht_lock);
+
+	INIT_LIST_HEAD(&sbi->afs_list);
+	rwlock_init(&sbi->afs_list_lock);
+	mutex_init(&sbi->steal_mutex);
 
 	return 0;
 

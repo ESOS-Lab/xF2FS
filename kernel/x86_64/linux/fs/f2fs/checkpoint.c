@@ -918,8 +918,15 @@ void f2fs_update_dirty_page(struct inode *inode, struct page *page)
 	inode_inc_dirty_pages(inode);
 	spin_unlock(&sbi->inode_lock[type]);
 
+#ifdef F2FS_MFAW_STEAL
+	if (!IS_ATOMIC_WRITTEN_PAGE(page)) {
+		SetPagePrivate(page);
+		f2fs_trace_pid(page);
+	}
+#else
 	SetPagePrivate(page);
 	f2fs_trace_pid(page);
+#endif
 }
 
 void f2fs_remove_dirty_inode(struct inode *inode)
@@ -1122,6 +1129,8 @@ static void unblock_operations(struct f2fs_sb_info *sbi)
 
 static void wait_on_all_pages_writeback(struct f2fs_sb_info *sbi)
 {
+	// JATA DBG
+	unsigned long long cnt = 0;
 	DEFINE_WAIT(wait);
 
 	for (;;) {
@@ -1129,6 +1138,10 @@ static void wait_on_all_pages_writeback(struct f2fs_sb_info *sbi)
 
 		if (!get_pages(sbi, F2FS_WB_CP_DATA))
 			break;
+
+		if (100 == cnt++)
+			printk("[JATA DBG] (%s) %lld\n",
+			       __func__, get_pages(sbi, F2FS_WB_CP_DATA));
 
 		io_schedule_timeout(5*HZ);
 	}

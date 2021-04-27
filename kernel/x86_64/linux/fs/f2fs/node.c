@@ -29,6 +29,8 @@ static struct kmem_cache *nat_entry_slab;
 static struct kmem_cache *free_nid_slab;
 static struct kmem_cache *nat_entry_set_slab;
 
+int dirty_node_count = 0;
+
 /*
  * Check whether the given nid is within node id range.
  */
@@ -1811,6 +1813,8 @@ static int f2fs_set_node_page_dirty(struct page *page)
 		inc_page_count(F2FS_P_SB(page), F2FS_DIRTY_NODES);
 		SetPagePrivate(page);
 		f2fs_trace_pid(page);
+		if (write_vol_trace)
+			dirty_node_count++;
 		return 1;
 	}
 	return 0;

@@ -2888,7 +2888,8 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 	inode = filp->f_mapping->host;
 	fi = F2FS_I(inode);
 	sbi = F2FS_I_SB(inode);
-	afs = *(struct atomic_file_set**)arg;
+	//afs = *(struct atomic_file_set**)arg;
+	copy_from_user((void*)&afs, (void*)arg, sizeof(struct atomic_file_set*));
 
 	if (f2fs_is_added_file(inode))
 		return -ENOENT;
@@ -2901,7 +2902,8 @@ static int f2fs_ioc_add_atomic_file(struct file *filp, unsigned long arg)
 		afs = f2fs_kzalloc(sbi, sizeof(struct atomic_file_set), GFP_KERNEL);
 		if (!afs)
 			return -ENOMEM;
-		*(struct atomic_file_set**)arg = afs;
+		//*(struct atomic_file_set**)arg = afs;
+		copy_to_user((void*)arg, (void*)&afs, sizeof(afs));
 		INIT_LIST_HEAD(&afs->afs_list);
 		init_rwsem(&afs->afs_rwsem);
 		afs->afs_magic = cpu_to_le32(F2FS_MUFIT_MAGIC);

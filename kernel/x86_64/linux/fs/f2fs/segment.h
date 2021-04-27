@@ -210,11 +210,13 @@ struct segment_allocation {
 #define ATOMIC_WRITTEN_PAGE		((unsigned long)-1)
 #define DUMMY_WRITTEN_PAGE		((unsigned long)-2)
 
-#ifdef F2FS_MFAW_STEAL
+//#ifdef F2FS_MFAW_STEAL
+#if 0
 #define IS_ATOMIC_WRITTEN_PAGE(page)			\
 		((page_private(page) == (unsigned long)ATOMIC_WRITTEN_PAGE) ||\
 		((page_private(page) != (unsigned long)DUMMY_WRITTEN_PAGE) \
-		&& (user_addr_max() < page_private(page))))
+		&& (virt_addr_valid(page_private(page)))))
+		//&& (user_addr_max() < page_private(page))))
 #else
 #define IS_ATOMIC_WRITTEN_PAGE(page)			\
 		(page_private(page) == (unsigned long)ATOMIC_WRITTEN_PAGE)
@@ -229,6 +231,8 @@ struct inmem_pages {
 	struct list_head list;
 	struct page *page;
 	pgoff_t index;
+	bool stolen;
+	bool decreased;
 	block_t old_addr;		/* for revoking when fail to commit */
 	block_t new_addr;
 };

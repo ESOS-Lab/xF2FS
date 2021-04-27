@@ -30,6 +30,21 @@
 
 #define NUM_PREALLOC_POST_READ_CTXS	128
 
+// JATA DBG
+int write_count = 0;
+int dirty_count = 0;
+int dirty_sst_count = 0;
+int dirty_log_count = 0;
+int dirty_MANIFEST_count = 0;
+int dirty_LOG_count = 0;
+int dirty_root_count = 0;
+int dirty_dbtmp_count = 0;
+int dirty_OPTIONS_count = 0;
+int atomic_count = 0;
+int atomic_if_count = 0;
+/*struct write_vol_entry write_vol_header;*/
+int write_vol_trace = 0;
+
 static struct kmem_cache *bio_post_read_ctx_cache;
 static mempool_t *bio_post_read_ctx_pool;
 extern struct kmem_cache *inmem_entry_slab;
@@ -627,7 +642,8 @@ void f2fs_set_data_blkaddr(struct dnode_of_data *dn)
 		struct inmem_node_pages *inmem_node_cur, *inmem_node_tmp;
 		bool alloc = true;
 
-		list_for_each_entry_safe(inmem_node_cur, inmem_node_tmp, &afs->inmem_node_pages, list) {
+		list_for_each_entry_safe(inmem_node_cur, inmem_node_tmp, 
+		                         &afs->inmem_node_pages_list, list) {
 			if (dn->nid == inmem_node_cur->nid) {
 				alloc = false;
 				break;
@@ -643,7 +659,7 @@ void f2fs_set_data_blkaddr(struct dnode_of_data *dn)
 			INIT_LIST_HEAD(&new->list);
 			new->nid = dn->nid;
 
-			list_add_tail(&new->list, &fi->af->afs->inmem_node_pages);
+			list_add_tail(&new->list, &fi->af->afs->inmem_node_pages_list);
 		}
 	}
 }
@@ -1720,6 +1736,12 @@ static inline bool need_inplace_update(struct f2fs_io_info *fio)
 {
 	struct inode *inode = fio->page->mapping->host;
 
+/*#ifdef F2FS_MFAW_STEAL
+	if (IS_ATOMIC_WRITTEN_PAGE(fio->page) \
+	    && ((struct inmem_pages*)(fio->page->private))->stolen)
+		return true;
+#endif*/
+
 	if (f2fs_should_update_outplace(inode, fio))
 		return false;
 
@@ -2304,6 +2326,7 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
 
 	trace_f2fs_write_begin(inode, pos, len, flags);
 
+#ifndef F2FS_MFAW_STEAL
 	if (f2fs_is_atomic_file(inode) &&
 			!f2fs_available_free_memory(sbi, INMEM_PAGES)) {
 		err = -ENOMEM;
@@ -2311,6 +2334,16 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
 		printk("[JATA DBG] (%s) no memory\n", __func__);
 		goto fail;
 	}
+#else
+	while (f2fs_is_atomic_file(inode) &&
+			!f2fs_available_free_memory(sbi, INMEM_PAGES)) {
+		mutex_lock(&sbi->steal_mutex);
+		if (f2fs_is_atomic_file(inode) &&
+		    !f2fs_available_free_memory(sbi, INMEM_PAGES))
+			f2fs_steal_inmem_pages_all(sbi);
+		mutex_unlock(&sbi->steal_mutex);
+	}
+#endif
 
 	/*
 	 * We should check this at this moment to avoid deadlock on inode page
@@ -2363,6 +2396,11 @@ repeat:
 	if (f2fs_post_read_required(inode))
 		f2fs_wait_on_block_writeback(sbi, blkaddr);
 
+	// JATA DBG
+	if (write_vol_trace) {
+		write_count++;
+	}
+
 	if (len == PAGE_SIZE || PageUptodate(page))
 		return 0;
 
@@ -2394,6 +2432,7 @@ repeat:
 fail:
 	f2fs_put_page(page, 1);
 	f2fs_write_failed(mapping, pos + len);
+
 	if (drop_atomic)
 		f2fs_drop_inmem_pages_all(sbi, false);
 	return err;
@@ -2554,16 +2593,19 @@ static int f2fs_set_data_page_dirty(struct page *page)
 	if (!PageUptodate(page))
 		SetPageUptodate(page);
 
-	if ((current->is_atomic || f2fs_is_atomic_file(inode)) && !f2fs_is_commit_atomic_write(inode)) {
-		//printk("[JATA DBG] (%s) A page is dirtied by the thread %u\n", __func__, current->pid);
-
+	if ((current->is_atomic || f2fs_is_atomic_file(inode)) 
+	    && !f2fs_is_commit_atomic_write(inode)) {
+		atomic_if_count++;
 		if (!f2fs_is_atomic_file(inode) && current->is_atomic)
 			f2fs_ioc_add_atomic_inode(inode, (unsigned long)&current->afs);
 
 		if (!IS_ATOMIC_WRITTEN_PAGE(page) && f2fs_is_atomic_file(inode)) {
+			atomic_count++;
 			f2fs_register_inmem_page(inode, page);
 			return 1;
-		}
+		} /*else if (IS_ATOMIC_WRITTEN_PAGE(page) && 
+		           ((struct inmem_pages*)(page->private))->decreased)
+			goto dirty;*/
 		/*
 		 * Previously, this page has been registered, we just
 		 * return here.
@@ -2571,9 +2613,31 @@ static int f2fs_set_data_page_dirty(struct page *page)
 		return 0;
 	}
 
+//#ifdef F2FS_MFAW_STEAL
+#if 0
+dirty:
+#endif
 	if (!PageDirty(page)) {
+		struct dentry *dentry = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
 		__set_page_dirty_nobuffers(page);
 		f2fs_update_dirty_page(inode, page);
+		if (write_vol_trace) {
+			dirty_count++;
+			if (dentry && strstr(dentry->d_name.name, ".sst"))
+				dirty_sst_count++;
+			else if (dentry && strstr(dentry->d_name.name, ".log"))
+				dirty_log_count++;
+			else if (dentry && strstr(dentry->d_name.name, "MANIFEST"))
+				dirty_MANIFEST_count++;
+			else if (dentry && strstr(dentry->d_name.name, "LOG"))
+				dirty_LOG_count++;
+			else if (dentry && strstr(dentry->d_name.name, "/"))
+				dirty_root_count++;
+			else if (dentry && strstr(dentry->d_name.name, "dbtmp"))
+				dirty_dbtmp_count++;
+			else if (dentry && strstr(dentry->d_name.name, "OPTIONS"))
+				dirty_OPTIONS_count++;
+		}
 		return 1;
 	}
 	return 0;

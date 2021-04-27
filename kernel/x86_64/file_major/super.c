@@ -2664,6 +2664,8 @@ static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
 	int recovery, i, valid_super_block;
 	struct curseg_info *seg_i;
 
+	printk("[JATA DBG] (%s) This is File Major exF2FS\n", __func__);
+
 try_onemore:
 	err = -EINVAL;
 	raw_super = NULL;
