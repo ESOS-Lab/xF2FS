@@ -512,11 +512,7 @@ int f2fs_write_inode(struct inode *inode, struct writeback_control *wbc)
 	 * during the urgent cleaning time when runing out of free sections.
 	 */
 	f2fs_update_inode_page(inode);
-#ifdef F2FS_MFAW_STEAL
-	if (wbc && wbc->nr_to_write && !f2fs_is_commit_atomic_write(inode))
-#else
 	if (wbc && wbc->nr_to_write)
-#endif
 		f2fs_balance_fs(sbi, true);
 	return 0;
 }
@@ -531,8 +527,15 @@ void f2fs_evict_inode(struct inode *inode)
 	int err = 0;
 
 	/* some remained atomic pages should discarded */
-	if (f2fs_is_atomic_file(inode))
-		f2fs_drop_inmem_pages(inode);
+	if (f2fs_is_atomic_file(inode)) {
+		if (!f2fs_is_added_file(inode))
+			f2fs_drop_inmem_pages(inode);
+		else {
+			mutex_lock(&sbi->steal_mutex);
+			f2fs_steal_inmem_pages_all(sbi, inode);
+			mutex_unlock(&sbi->steal_mutex);
+		}
+	}
 
 	trace_f2fs_evict_inode(inode);
 	truncate_inode_pages_final(&inode->i_data);

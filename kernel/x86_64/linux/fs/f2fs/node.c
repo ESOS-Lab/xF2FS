@@ -1585,7 +1585,6 @@ continue_unlock:
 					mpage = f2fs_get_node_page(sbi, afs->master_nid);
 					mn = page_address(mpage);
 
-					/* Copy Node address to Master node block  */
 					nid = nid_of_node(page);
 					f2fs_get_node_info(sbi, nid, &ni);
 
@@ -1813,8 +1812,6 @@ static int f2fs_set_node_page_dirty(struct page *page)
 		inc_page_count(F2FS_P_SB(page), F2FS_DIRTY_NODES);
 		SetPagePrivate(page);
 		f2fs_trace_pid(page);
-		if (write_vol_trace)
-			dirty_node_count++;
 		return 1;
 	}
 	return 0;

@@ -1186,10 +1186,6 @@ struct task_struct {
 	 */
 	randomized_struct_fields_end
 
-	bool is_atomic;
-	struct atomic_file_set *afs;
-	pid_t atomic_pid;
-
 	/* CPU-specific state of this task: */
 	struct thread_struct		thread;
 

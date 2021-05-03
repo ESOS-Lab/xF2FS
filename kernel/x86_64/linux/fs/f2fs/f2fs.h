@@ -29,36 +29,6 @@
 #define __FS_HAS_ENCRYPTION IS_ENABLED(CONFIG_F2FS_FS_ENCRYPTION)
 #include <linux/fscrypt.h>
 
-#define F2FS_MFAW_STEAL
-
-/*struct write_vol_entry {
-	unsigned long inum;
-	unsigned long index;
-	int count;
-	struct list_head list;
-};
-
-extern struct write_vol_entry write_vol_header;*/
-
-extern int gc_count;
-extern int fgc_count;
-extern int seg_count;
-extern int write_count;
-extern int dirty_count;
-extern int dirty_sst_count;
-extern int dirty_log_count;
-extern int dirty_MANIFEST_count;
-extern int dirty_LOG_count;
-extern int dirty_root_count;
-extern int dirty_dbtmp_count;
-extern int dirty_OPTIONS_count;
-extern int dirty_node_count;
-extern int atomic_count;
-extern int atomic_if_count;
-extern long long gc_trigger_start;
-extern long long gc_trigger_end;
-extern int write_vol_trace;
-
 #ifdef CONFIG_F2FS_CHECK_FS
 #define f2fs_bug_on(sbi, condition)	BUG_ON(condition)
 #else
@@ -667,7 +637,7 @@ enum {
  * - Joontaek Oh.
  */
 #define MASTER_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
-#define F2FS_MUFIT_MAGIC	0xF2F52011
+//#define F2FS_MUFIT_MAGIC	0xF2F52011
 
 struct atomic_file_set {
 	unsigned long key;			/* key for the atomic file set */
@@ -683,8 +653,8 @@ struct atomic_file_set {
 	struct rhash_head khtnode;		/* node for key hash table */
 	bool started;
 	bool committing;
-	long long start;
-	__le32 afs_magic;			/* magic number for atomic file set */
+	//long long start;
+	//__le32 afs_magic;			/* magic number for atomic file set */
 };
 
 struct atomic_file {
@@ -694,13 +664,6 @@ struct atomic_file {
 	struct atomic_file_set *afs; 	/* pointer to atomic file set that including this file */
 	bool last_file;
 };
-
-/*struct atomic_summary {
-	struct list_head list;
-	struct f2fs_summary sum;
-	unsigned int segno;
-	void *addr;
-};*/
 
 enum {
 	GC_FAILURE_PIN,
@@ -1834,10 +1797,6 @@ static inline void inode_inc_dirty_pages(struct inode *inode)
 
 static inline void dec_page_count(struct f2fs_sb_info *sbi, int count_type)
 {
-	if (count_type == F2FS_WB_CP_DATA && 
-	    !atomic_read(&sbi->nr_pages[F2FS_WB_CP_DATA]))
-		printk("[JATA DBG] (%s) page count decreased %d\n", __func__, 
-		                atomic_read(&sbi->nr_pages[F2FS_WB_CP_DATA]));
 	atomic_dec(&sbi->nr_pages[count_type]);
 }
 
@@ -2103,7 +2062,6 @@ static inline void f2fs_put_page(struct page *page, int unlock)
 		f2fs_bug_on(F2FS_P_SB(page), !PageLocked(page));
 		unlock_page(page);
 	}
-
 	put_page(page);
 }
 
@@ -2801,7 +2759,6 @@ int f2fs_precache_extents(struct inode *inode);
 long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 long f2fs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 int f2fs_pin_file_control(struct inode *inode, bool inc);
-extern int f2fs_ioc_add_atomic_inode(struct inode *inode, unsigned long arg);
 
 /*
  * inode.c
@@ -2947,11 +2904,11 @@ extern int ____write_node_page(struct page *page, bool atomic, bool *submitted, 
 bool f2fs_need_SSR(struct f2fs_sb_info *sbi);
 void f2fs_register_inmem_page(struct inode *inode, struct page *page);
 void f2fs_drop_inmem_pages_all(struct f2fs_sb_info *sbi, bool gc_failure);
-void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi);
-void f2fs_steal_inmem_pages(struct inode *inode);
+void f2fs_steal_inmem_pages_all(struct f2fs_sb_info *sbi, struct inode *inode);
 void f2fs_drop_inmem_pages(struct inode *inode);
 void f2fs_drop_inmem_page(struct inode *inode, struct page *page);
 int f2fs_commit_inmem_pages(struct inode *inode);
+int ____f2fs_commit_inmem_pages(struct inode *inode);
 int f2fs_commit_inmem_pages_atomic_file_set(struct inode *inode, struct list_head *revoke_list);
 void f2fs_balance_fs(struct f2fs_sb_info *sbi, bool need);
 void f2fs_balance_fs_bg(struct f2fs_sb_info *sbi);

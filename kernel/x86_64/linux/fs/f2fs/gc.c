@@ -595,30 +595,8 @@ static bool is_alive(struct f2fs_sb_info *sbi, struct f2fs_summary *sum,
 	source_blkaddr = datablock_addr(NULL, node_page, ofs_in_node);
 	f2fs_put_page(node_page, 1);
 
-#ifdef F2FS_MFAW_STEAL
-	if (source_blkaddr != blkaddr) {
-		struct inode *inode = f2fs_iget(sbi->sb, dni->ino);
-		struct f2fs_inode_info *fi = F2FS_I(inode);
-		struct atomic_file_set *afs;
-		struct inmem_pages *inmem_cur, *inmem_tmp;
-
-		if (f2fs_is_added_file(inode)) {
-			afs = fi->af->afs;
-			down_read(&afs->afs_rwsem);
-			list_for_each_entry_safe(inmem_cur, inmem_tmp,
-			                         &afs->inmem_pages_list, list) {
-				if (inmem_cur->old_addr == blkaddr || 
-				    inmem_cur->new_addr == blkaddr)
-					return true;
-			}
-			up_read(&afs->afs_rwsem);
-		}
-		return false;
-	}
-#else
 	if (source_blkaddr != blkaddr)
 		return false;
-#endif
 	return true;
 }
 
@@ -772,13 +750,12 @@ static void move_data_page(struct inode *inode, block_t bidx, int gc_type,
 	if (!check_valid_map(F2FS_I_SB(inode), segno, off))
 		goto out;
 
-#ifndef F2FS_MFAW_STEAL
 	if (f2fs_is_atomic_file(inode)) {
 		F2FS_I(inode)->i_gc_failures[GC_FAILURE_ATOMIC]++;
 		F2FS_I_SB(inode)->skipped_atomic_files[gc_type]++;
 		goto out;
 	}
-#endif
+
 	if (f2fs_is_pinned_file(inode)) {
 		if (gc_type == FG_GC)
 			f2fs_pin_file_control(inode, true);
@@ -1065,10 +1042,8 @@ int f2fs_gc(struct f2fs_sb_info *sbi, bool sync,
 		.ilist = LIST_HEAD_INIT(gc_list.ilist),
 		.iroot = RADIX_TREE_INIT(gc_list.iroot, GFP_NOFS),
 	};
-#ifndef F2FS_MFAW_STEAL
 	unsigned long long last_skipped = sbi->skipped_atomic_files[FG_GC];
 	unsigned int skipped_round = 0, round = 0;
-#endif
 
 	gc_count++;
 	if (!gc_trigger_end)
@@ -1125,25 +1100,21 @@ gc_more:
 		sec_freed++;
 	total_freed += seg_freed;
 
-#ifndef F2FS_MFAW_STEAL
 	if (gc_type == FG_GC) {
 		if (sbi->skipped_atomic_files[FG_GC] > last_skipped)
 			skipped_round++;
 		last_skipped = sbi->skipped_atomic_files[FG_GC];
 		round++;
 	}
-#endif
 
 	if (gc_type == FG_GC)
 		sbi->cur_victim_sec = NULL_SEGNO;
 
 	if (!sync) {
 		if (has_not_enough_free_secs(sbi, sec_freed, 0)) {
-#ifndef F2FS_MFAW_STEAL
 			if (skipped_round > MAX_SKIP_ATOMIC_COUNT &&
 				skipped_round * 2 >= round)
 				f2fs_drop_inmem_pages_all(sbi, true);
-#endif
 			segno = NULL_SEGNO;
 			goto gc_more;
 		}
