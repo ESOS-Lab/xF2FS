@@ -32,6 +32,7 @@
 
 static struct kmem_cache *bio_post_read_ctx_cache;
 static mempool_t *bio_post_read_ctx_pool;
+extern struct kmem_cache *inmem_entry_slab;
 
 static bool __is_cp_guaranteed(struct page *page)
 {
@@ -606,10 +607,37 @@ static void __set_data_blkaddr(struct dnode_of_data *dn)
  */
 void f2fs_set_data_blkaddr(struct dnode_of_data *dn)
 {
+	struct inode *inode = dn->inode;
 	f2fs_wait_on_page_writeback(dn->node_page, NODE, true);
 	__set_data_blkaddr(dn);
 	if (set_page_dirty(dn->node_page))
 		dn->node_changed = true;
+
+	if (f2fs_is_commit_atomic_write(inode) && f2fs_is_added_file(inode)) {
+		struct f2fs_inode_info *fi = F2FS_I(inode);
+		struct atomic_file_set *afs = fi->af->afs;
+		struct inmem_node_pages *inmem_node_cur, *inmem_node_tmp;
+		bool alloc = true;
+
+		list_for_each_entry_safe(inmem_node_cur, inmem_node_tmp, &afs->inmem_node_pages_list, list) {
+			if (dn->nid == inmem_node_cur->nid) {
+				alloc = false;
+				break;
+			}
+		}
+
+		if (alloc) {
+			struct inmem_node_pages *new;
+
+			new = f2fs_kmem_cache_alloc(inmem_entry_slab, GFP_NOFS);
+
+			new->page = dn->node_page;
+			INIT_LIST_HEAD(&new->list);
+			new->nid = dn->nid;
+
+			list_add_tail(&new->list, &fi->af->afs->inmem_node_pages_list);
+		}
+	}
 }
 
 void f2fs_update_data_blkaddr(struct dnode_of_data *dn, block_t blkaddr)
@@ -2257,13 +2285,8 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
 	}
 #else
 	if (f2fs_is_atomic_file(inode) &&
-			!f2fs_available_free_memory(sbi, INMEM_PAGES)) {
-		/*mutex_lock(&sbi->steal_mutex);
-		if (f2fs_is_atomic_file(inode) &&
-		    !f2fs_available_free_memory(sbi, INMEM_PAGES))*/
-			f2fs_steal_inmem_pages_all(sbi, file->f_inode);
-		//1mutex_unlock(&sbi->steal_mutex);
-	}
+			!f2fs_available_free_memory(sbi, INMEM_PAGES))
+		f2fs_steal_inmem_pages_all(sbi, file->f_inode);
 #endif
 
 	/*

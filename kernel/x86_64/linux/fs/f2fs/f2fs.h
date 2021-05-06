@@ -637,7 +637,6 @@ enum {
  * - Joontaek Oh.
  */
 #define MASTER_NODE_OFFSET	((((unsigned int)-2) << OFFSET_BIT_SHIFT) >> OFFSET_BIT_SHIFT)
-//#define F2FS_MUFIT_MAGIC	0xF2F52011
 
 struct atomic_file_set {
 	unsigned long key;			/* key for the atomic file set */
@@ -653,8 +652,6 @@ struct atomic_file_set {
 	struct rhash_head khtnode;		/* node for key hash table */
 	bool started;
 	bool committing;
-	//long long start;
-	//__le32 afs_magic;			/* magic number for atomic file set */
 };
 
 struct atomic_file {
