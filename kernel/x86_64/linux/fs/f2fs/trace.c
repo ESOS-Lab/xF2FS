@@ -59,8 +59,6 @@ void f2fs_trace_pid(struct page *page)
 	pid_t pid = task_pid_nr(current);
 	void *p;
 
-	set_page_private(page, (unsigned long)pid);
-
 	if (radix_tree_preload(GFP_NOFS))
 		return;
 

@@ -622,6 +622,8 @@ static struct kvm *kvm_create_vm(unsigned long type)
 	int r, i;
 	struct kvm *kvm = kvm_arch_alloc_vm();
 
+	dump_stack();
+
 	if (!kvm)
 		return ERR_PTR(-ENOMEM);
 

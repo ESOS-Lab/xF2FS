@@ -1325,6 +1325,7 @@ static int journal_reset(journal_t *journal)
 	journal->j_commit_request = journal->j_commit_sequence;
 
 	journal->j_max_transaction_buffers = journal->j_maxlen / 4;
+	printk("[JATA DBG] (%s) j_max_transaction_buffers: %d\n", __func__, journal->j_max_transaction_buffers);
 
 	/*
 	 * As a special case, if the on-disk copy is already marked as needing

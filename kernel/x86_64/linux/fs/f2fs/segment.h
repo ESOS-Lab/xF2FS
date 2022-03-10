@@ -211,7 +211,7 @@ struct segment_allocation {
 #define DUMMY_WRITTEN_PAGE		((unsigned long)-2)
 
 #define IS_ATOMIC_WRITTEN_PAGE(page)			\
-		(page_private(page) == (unsigned long)ATOMIC_WRITTEN_PAGE)
+		virt_addr_valid(page_private(page))
 
 #define IS_DUMMY_WRITTEN_PAGE(page)			\
 		(page_private(page) == (unsigned long)DUMMY_WRITTEN_PAGE)
@@ -222,8 +222,7 @@ struct inmem_pages {
 	struct list_head list;
 	struct page *page;
 	pgoff_t index;
-	//bool stolen;
-	//bool decreased;
+	bool stolen;
 	block_t old_addr;		/* for revoking when fail to commit */
 	block_t new_addr;
 };
@@ -662,11 +661,8 @@ static inline void verify_block_addr(struct f2fs_io_info *fio, block_t blk_addr)
 		BUG_ON(blk_addr < SEG0_BLKADDR(sbi) ||
 				blk_addr >= MAIN_BLKADDR(sbi));
 	else
-		if (blk_addr < MAIN_BLKADDR(sbi) || blk_addr >= MAX_BLKADDR(sbi)) {
-			printk("[JATA DBG] (%s) %u\n", __func__, blk_addr);
 		BUG_ON(blk_addr < MAIN_BLKADDR(sbi) ||
 				blk_addr >= MAX_BLKADDR(sbi));
-		}
 }
 
 /*

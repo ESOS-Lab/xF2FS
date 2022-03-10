@@ -652,6 +652,9 @@ struct atomic_file_set {
 	struct rhash_head khtnode;		/* node for key hash table */
 	bool started;
 	bool committing;
+	int stolen_count;
+	int atomic_count;
+	int added_count;
 };
 
 struct atomic_file {

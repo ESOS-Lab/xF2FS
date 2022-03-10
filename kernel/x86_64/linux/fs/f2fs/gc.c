@@ -23,12 +23,6 @@
 #include "gc.h"
 #include <trace/events/f2fs.h>
 
-int gc_count = 0;
-int fgc_count = 0;
-int seg_count = 0;
-long long gc_trigger_start = 0;
-long long gc_trigger_end = 0;
-
 static int gc_thread_func(void *data)
 {
 	struct f2fs_sb_info *sbi = data;
@@ -639,7 +633,6 @@ static void move_data_block(struct inode *inode, block_t bidx,
 		F2FS_I_SB(inode)->skipped_atomic_files[gc_type]++;
 		goto out;
 	}
-
 	if (f2fs_is_pinned_file(inode)) {
 		f2fs_pin_file_control(inode, true);
 		goto out;
@@ -967,8 +960,6 @@ static int do_garbage_collect(struct f2fs_sb_info *sbi,
 	unsigned char type = IS_DATASEG(get_seg_entry(sbi, segno)->type) ?
 						SUM_TYPE_DATA : SUM_TYPE_NODE;
 
-	fgc_count++;
-
 	/* readahead multi ssa blocks those have contiguous address */
 	if (sbi->segs_per_sec > 1)
 		f2fs_ra_meta_pages(sbi, GET_SUM_BLOCK(sbi, segno),
@@ -1045,10 +1036,6 @@ int f2fs_gc(struct f2fs_sb_info *sbi, bool sync,
 	unsigned long long last_skipped = sbi->skipped_atomic_files[FG_GC];
 	unsigned int skipped_round = 0, round = 0;
 
-	gc_count++;
-	if (!gc_trigger_end)
-		gc_trigger_end = get_current_utime();
-
 	trace_f2fs_gc_begin(sbi->sb, sync, background,
 				get_pages(sbi, F2FS_DIRTY_NODES),
 				get_pages(sbi, F2FS_DIRTY_DENTS),
@@ -1059,7 +1046,6 @@ int f2fs_gc(struct f2fs_sb_info *sbi, bool sync,
 				prefree_segments(sbi));
 
 	cpc.reason = __get_cp_reason(sbi);
-
 gc_more:
 	if (unlikely(!(sbi->sb->s_flags & SB_ACTIVE))) {
 		ret = -EINVAL;
@@ -1134,7 +1120,6 @@ stop:
 				free_segments(sbi),
 				reserved_segments(sbi),
 				prefree_segments(sbi));
-	seg_count += total_freed;
 
 	mutex_unlock(&sbi->gc_mutex);
 

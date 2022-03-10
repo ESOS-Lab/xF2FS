@@ -470,6 +470,9 @@ void f2fs_submit_page_write(struct f2fs_io_info *fio)
 	struct f2fs_bio_info *io = sbi->write_io[btype] + fio->temp;
 	struct page *bio_page;
 
+	if (inode && F2FS_I(inode)->af)
+		afs = F2FS_I(inode)->af->afs;
+
 	f2fs_bug_on(sbi, is_read_io(fio->op));
 
 	down_write(&io->io_rwsem);
@@ -496,6 +499,17 @@ next:
 	fio->submitted = true;
 
 	inc_page_count(sbi, WB_DATA_TYPE(bio_page));
+
+	/* Steal */
+	if (IS_ATOMIC_WRITTEN_PAGE(bio_page) && !f2fs_is_commit_atomic_write(inode)) {
+		struct inmem_pages *ip;
+
+		ip = (struct inmem_pages*)page_private(bio_page);
+		ip->stolen = true;
+		set_page_private(bio_page, 0);
+		ClearPagePrivate(bio_page);
+		dec_page_count(sbi, F2FS_INMEM_PAGES);
+	}
 
 	if (io->bio && (io->last_block_in_bio != fio->new_blkaddr - 1 ||
 	    (io->fio.op != fio->op || io->fio.op_flags != fio->op_flags) ||
@@ -608,12 +622,14 @@ static void __set_data_blkaddr(struct dnode_of_data *dn)
 void f2fs_set_data_blkaddr(struct dnode_of_data *dn)
 {
 	struct inode *inode = dn->inode;
+
 	f2fs_wait_on_page_writeback(dn->node_page, NODE, true);
 	__set_data_blkaddr(dn);
+
 	if (set_page_dirty(dn->node_page))
 		dn->node_changed = true;
 
-	if (f2fs_is_commit_atomic_write(inode) && f2fs_is_added_file(inode)) {
+	if (f2fs_is_atomic_file(inode) && f2fs_is_added_file(inode)) {
 		struct f2fs_inode_info *fi = F2FS_I(inode);
 		struct atomic_file_set *afs = fi->af->afs;
 		struct inmem_node_pages *inmem_node_cur, *inmem_node_tmp;
@@ -636,6 +652,7 @@ void f2fs_set_data_blkaddr(struct dnode_of_data *dn)
 			new->nid = dn->nid;
 
 			list_add_tail(&new->list, &fi->af->afs->inmem_node_pages_list);
+			get_page(dn->node_page);
 		}
 	}
 }
@@ -2274,21 +2291,6 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
 
 	trace_f2fs_write_begin(inode, pos, len, flags);
 
-//#ifndef F2FS_MFAW_STEAL
-#if 0
-	if (f2fs_is_atomic_file(inode) &&
-			!f2fs_available_free_memory(sbi, INMEM_PAGES)) {
-		err = -ENOMEM;
-		drop_atomic = true;
-		printk("[JATA DBG] (%s) no memory\n", __func__);
-		goto fail;
-	}
-#else
-	if (f2fs_is_atomic_file(inode) &&
-			!f2fs_available_free_memory(sbi, INMEM_PAGES))
-		f2fs_steal_inmem_pages_all(sbi, file->f_inode);
-#endif
-
 	/*
 	 * We should check this at this moment to avoid deadlock on inode page
 	 * and #0 page. The locking rule for inline_data conversion should be:
@@ -2296,10 +2298,8 @@ static int f2fs_write_begin(struct file *file, struct address_space *mapping,
 	 */
 	if (index != 0) {
 		err = f2fs_convert_inline_inode(inode);
-		if (err) {
-			printk("[JATA DBG] (%s) 1\n", __func__);
+		if (err)
 			goto fail;
-		}
 	}
 repeat:
 	/*
@@ -2310,7 +2310,6 @@ repeat:
 				FGP_LOCK | FGP_WRITE | FGP_CREAT, GFP_NOFS);
 	if (!page) {
 		err = -ENOMEM;
-		printk("[JATA DBG] (%s) 2\n", __func__);
 		goto fail;
 	}
 
@@ -2318,10 +2317,8 @@ repeat:
 
 	err = prepare_write_begin(sbi, page, pos, len,
 					&blkaddr, &need_balance);
-	if (err) {
-		printk("[JATA DBG] (%s) 3\n", __func__);
+	if (err)
 		goto fail;
-	}
 
 	if (need_balance && has_not_enough_free_secs(sbi, 0, 0)) {
 		unlock_page(page);
@@ -2353,10 +2350,8 @@ repeat:
 		SetPageUptodate(page);
 	} else {
 		err = f2fs_submit_page_read(inode, page, blkaddr);
-		if (err) {
-			printk("[JATA DBG] (%s) 4\n", __func__);
+		if (err)
 			goto fail;
-		}
 
 		lock_page(page);
 		if (unlikely(page->mapping != mapping)) {
@@ -2365,7 +2360,6 @@ repeat:
 		}
 		if (unlikely(!PageUptodate(page))) {
 			err = -EIO;
-			printk("[JATA DBG] (%s) 5\n", __func__);
 			goto fail;
 		}
 	}
@@ -2535,15 +2529,8 @@ static int f2fs_set_data_page_dirty(struct page *page)
 		SetPageUptodate(page);
 
 	if (f2fs_is_atomic_file(inode) && !f2fs_is_commit_atomic_write(inode)) {
-		if (!IS_ATOMIC_WRITTEN_PAGE(page)) {
+		if (!IS_ATOMIC_WRITTEN_PAGE(page))
 			f2fs_register_inmem_page(inode, page);
-			return 1;
-		}
-		/*
-		 * Previously, this page has been registered, we just
-		 * return here.
-		 */
-		return 0;
 	}
 
 	if (!PageDirty(page)) {

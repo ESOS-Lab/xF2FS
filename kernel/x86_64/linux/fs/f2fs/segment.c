@@ -201,16 +201,18 @@ void f2fs_register_inmem_page(struct inode *inode, struct page *page)
 		return;
 	}
 
+	set_page_private(page, (unsigned long) new);
+
 	/* add atomic page indices to the list */
 	new->page = page;
 	new->index = page->index;
 	INIT_LIST_HEAD(&new->list);
 	new->old_addr = 0;
 	new->new_addr = 0;
+	new->stolen = false;
 
 	/* increase reference count with clean state */
 	mutex_lock(&fi->inmem_lock);
-	get_page(page);
 	if (!f2fs_is_added_file(inode))
 		list_add_tail(&new->list, &fi->inmem_pages);
 	spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
@@ -243,6 +245,12 @@ static int __revoke_inmem_pages(struct inode *inode,
 
 	list_for_each_entry_safe(cur, tmp, head, list) {
 		struct page *page = cur->page;
+
+		if (cur->stolen) {
+			list_del(&cur->list);
+			kmem_cache_free(inmem_entry_slab, cur);
+			continue;
+		}
 		inode = page->mapping->host;
 
 		if (drop)
@@ -286,7 +294,7 @@ next:
 		set_page_private(page, 0);
 		ClearPagePrivate(page);
 
-		f2fs_put_page(page, 1);
+		unlock_page(page);
 
 		list_del(&cur->list);
 		kmem_cache_free(inmem_entry_slab, cur);
@@ -396,31 +404,14 @@ void f2fs_drop_inmem_pages(struct inode *inode)
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct f2fs_inode_info *fi = F2FS_I(inode);
 
-	/*if (f2fs_is_added_file(inode)) {
-		struct atomic_file_set *afs = fi->af->afs;
+	mutex_lock(&fi->inmem_lock);
+	__revoke_inmem_pages(inode, &fi->inmem_pages, true, false);
 
-		down_write(&afs->afs_rwsem);
-		mutex_lock(&fi->inmem_lock);
-
-		__revoke_inmem_pages(inode, &afs->inmem_pages_list, true, false);
-
-		spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
-		if (!list_empty(&fi->inmem_ilist))
-			list_del_init(&fi->inmem_ilist);
-		spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
-
-		mutex_unlock(&fi->inmem_lock);
-		up_write(&afs->afs_rwsem);
-	} else {*/
-		mutex_lock(&fi->inmem_lock);
-		__revoke_inmem_pages(inode, &fi->inmem_pages, true, false);
-
-		spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
-		if (!list_empty(&fi->inmem_ilist))
-			list_del_init(&fi->inmem_ilist);
-		spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
-		mutex_unlock(&fi->inmem_lock);
-	//}
+	spin_lock(&sbi->inode_lock[ATOMIC_FILE]);
+	if (!list_empty(&fi->inmem_ilist))
+		list_del_init(&fi->inmem_ilist);
+	spin_unlock(&sbi->inode_lock[ATOMIC_FILE]);
+	mutex_unlock(&fi->inmem_lock);
 
 	clear_inode_flag(inode, FI_ATOMIC_FILE);
 	fi->i_gc_failures[GC_FAILURE_ATOMIC] = 0;
@@ -436,42 +427,16 @@ void f2fs_drop_inmem_page(struct inode *inode, struct page *page)
 
 	f2fs_bug_on(sbi, !IS_ATOMIC_WRITTEN_PAGE(page));
 
-	/*if (f2fs_is_added_file(inode)) {
-		down_write(&fi->af->afs->afs_rwsem);
-		if (page->mapping->host->i_ino == F2FS_NODE_INO(sbi))
-			head = &fi->af->afs->inmem_node_pages_list;
-		else
-			head = &fi->af->afs->inmem_pages_list;
+	mutex_lock(&fi->inmem_lock);
+	list_for_each_entry(cur, head, list) {
+		if (cur->page == page)
+			break;
+	}
 
-		mutex_lock(&fi->inmem_lock);
-		list_for_each_entry(cur, head, list) {
-			if (cur->page == page)
-				break;
-		}
+	f2fs_bug_on(sbi, list_empty(head) || cur->page != page);
+	list_del(&cur->list);
+	mutex_unlock(&fi->inmem_lock);
 
-		f2fs_bug_on(sbi, list_empty(head) || cur->page != page);
-		list_del(&cur->list);
-		mutex_unlock(&fi->inmem_lock);
-		up_write(&fi->af->afs->afs_rwsem);
-	} else {*/
-		mutex_lock(&fi->inmem_lock);
-		list_for_each_entry(cur, head, list) {
-			if (cur->page == page)
-				break;
-		}
-
-		f2fs_bug_on(sbi, list_empty(head) || cur->page != page);
-		list_del(&cur->list);
-		mutex_unlock(&fi->inmem_lock);
-	//}
-
-	if (!get_pages(sbi, F2FS_INMEM_PAGES))
-		printk("[JATA_DBG] (%s) The inmem pages"
-		       "count is zero!!!\n", __func__);
-	/*if (cur->decreased) {
-		dec_page_count(sbi, F2FS_INMEM_PAGES);
-		cur->decreased = true;
-	}*/
 	kmem_cache_free(inmem_entry_slab, cur);
 
 	ClearPageUptodate(page);
@@ -565,7 +530,8 @@ int ____f2fs_commit_inmem_pages(struct inode *inode)
 	return __f2fs_commit_inmem_pages(inode);
 }
 
-static int __f2fs_commit_inmem_pages_atomic_file_set(struct inode *inode, struct list_head *revoke_list)
+static int __f2fs_commit_inmem_pages_atomic_file_set(struct inode *inode,
+                                                     struct list_head *revoke_list)
 {
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct f2fs_inode_info *fi = F2FS_I(inode);
@@ -648,7 +614,8 @@ int f2fs_commit_inmem_pages(struct inode *inode)
 	return err;
 }
 
-int f2fs_commit_inmem_pages_atomic_file_set(struct inode *inode, struct list_head *revoke_list)
+int f2fs_commit_inmem_pages_atomic_file_set(struct inode *inode,
+                                            struct list_head *revoke_list)
 {
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct f2fs_inode_info *fi = F2FS_I(inode);
@@ -2107,10 +2074,6 @@ static void update_sit_entry(struct f2fs_sb_info *sbi, block_t blkaddr, int del)
 
 	if (sbi->segs_per_sec > 1)
 		get_sec_entry(sbi, segno)->valid_blocks += del;
-	if ((new_vblocks >> (sizeof(unsigned short) << 3)) || new_vblocks > sbi->blocks_per_seg) {
-		printk("[JATA DBG] (%s) new_vblocks: %lu\n", __func__, new_vblocks);
-		dump_stack();
-	}
 }
 
 void f2fs_invalidate_blocks(struct f2fs_sb_info *sbi, block_t addr)
@@ -3058,43 +3021,12 @@ void f2fs_outplace_write_data(struct dnode_of_data *dn,
 	struct f2fs_sb_info *sbi = fio->sbi;
 	struct f2fs_summary sum;
 	struct node_info ni;
-	// Unpin
-	/*struct inode *inode = fio->page->mapping->host;
-	struct f2fs_inode_info *fi = F2FS_I(inode);
-	struct inmem_pages *page_cur, *page_tmp;*/
 
 	f2fs_bug_on(sbi, dn->data_blkaddr == NULL_ADDR);
 	f2fs_get_node_info(sbi, dn->nid, &ni);
 	set_summary(&sum, dn->nid, dn->ofs_in_node, ni.version);
 	do_write_page(&sum, fio);
 	f2fs_update_data_blkaddr(dn, fio->new_blkaddr);
-
-	/*if (f2fs_is_added_file(inode) && !f2fs_is_commit_atomic_write(inode)) {
-		struct atomic_file_set *afs = fi->af->afs;
-
-		down_write(&afs->afs_rwsem);
-
-		if (!f2fs_is_commit_atomic_write(inode)) {
-			list_for_each_entry_safe(page_cur, page_tmp, &afs->inmem_pages_list, list) {
-				struct page *page = page_cur->page;
-
-				lock_page(page);
-				if ((page->mapping->host == inode) &&
-				    (page->index == fio->page->index)) {
-					set_page_private(page, 0);
-					ClearPagePrivate(page);
-
-					f2fs_put_page(page, 1);
-					list_del(&page_cur->list);
-					kmem_cache_free(inmem_entry_slab, page_cur);
-					break;
-				}
-				unlock_page(page);
-			}
-		}
-
-		up_write(&afs->afs_rwsem);
-	}*/
 
 	f2fs_update_iostat(sbi, fio->io_type, F2FS_BLKSIZE);
 }

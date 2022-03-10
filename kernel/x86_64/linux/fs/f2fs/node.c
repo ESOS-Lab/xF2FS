@@ -1576,7 +1576,8 @@ continue_unlock:
 
 			if (page == last_page) {
 				if (f2fs_is_added_file(inode)) {
-					struct atomic_file_set *afs = F2FS_I(inode)->af->afs;
+					struct atomic_file_set *afs =
+					                           F2FS_I(inode)->af->afs;
 					struct master_node *mn;
 					struct page *mpage;
 					struct node_info ni;
@@ -1588,7 +1589,8 @@ continue_unlock:
 					nid = nid_of_node(page);
 					f2fs_get_node_info(sbi, nid, &ni);
 
-					mn->atm_addrs[afs->commit_file_count++] = ni.blk_addr;
+					mn->atm_addrs[afs->commit_file_count++] =
+					                                      ni.blk_addr;
 					f2fs_put_page(mpage, 1);
 				}
 
@@ -2974,8 +2976,6 @@ int f2fs_build_master_node(struct atomic_file_set *afs)
 	f2fs_alloc_nid_done(sbi, new_nid);
 
 	afs->master_nid = new_nid;
-
-	//clear_node_page_dirty(mpage);
 
 	f2fs_put_page(mpage, 1);
 	return 0;

@@ -1228,7 +1228,7 @@ endif
 ifneq "$(KERNELVERSION)" "4.18.0-rc6-xf2fs-dbg"
 include/config/auto.conf: FORCE
 endif
-ifneq "$(CC_VERSION_TEXT)" "gcc (Ubuntu 4.8.5-4ubuntu8) 4.8.5"
+ifneq "$(CC_VERSION_TEXT)" "gcc (Ubuntu 5.5.0-12ubuntu1) 5.5.0 20171010"
 include/config/auto.conf: FORCE
 endif
 ifneq "$(srctree)" "."
